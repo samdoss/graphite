@@ -178,7 +178,7 @@ Slot *Segment::newSlot()
         newSlots[m_bufSize - 1].next(NULL);
         m_slots.push_back(newSlots);
         m_userAttrs.push_back(newAttrs);
-        m_freeSlots = (m_bufSize > 1)? newSlots + 1 : NULL;
+        m_freeSlots = (m_bufSize > 1) ? newSlots + 1 : NULL;
         return newSlots;
     }
     Slot *res = m_freeSlots;
@@ -241,44 +241,27 @@ void Segment::splice(size_t offset, size_t length, Slot * startSlot,
     assert(numGlyphs == length);
     // keep a record of consecutive slots wrt start of splice to minimize
     // iterative next/prev calls
-    Slot * slotArray[eMaxSpliceSize];
-    uint16 slotPosition = 0;
-    for (uint16 i = 0; i < numGlyphs; i++)
+    Slot * slotArray[numGlyphs];
+    for (Slot **s = slotArray, **end = slotArray + numGlyphs; s != end; ++s, slot = slot->next())
+    { *s = slot; }
+
+    slot = startSlot;
+    for (uint i = 0; i < numGlyphs; ++i)
     {
-        if (slotPosition <= i)
-        {
-            slotArray[i] = slot;
-            slotPosition = i;
-        }
         slot->set(*replacement, offset, m_silf->numUser());
         if (replacement->attachedTo())
         {
-            uint16 parentPos = replacement->attachedTo() - firstSpliceSlot;
-            while (slotPosition < parentPos)
-            {
-                slotArray[slotPosition+1] = slotArray[slotPosition]->next();
-                ++slotPosition;
-            }
+            int parentPos = replacement->attachedTo() - firstSpliceSlot;
             slot->attachTo(slotArray[parentPos]);
         }
         if (replacement->nextSibling())
         {
-            uint16 pos = replacement->nextSibling() - firstSpliceSlot;
-            while (slotPosition < pos)
-            {
-                slotArray[slotPosition+1] = slotArray[slotPosition]->next();
-                ++slotPosition;
-            }
+            int pos = replacement->nextSibling() - firstSpliceSlot;
             slot->sibling(slotArray[pos]);
         }
         if (replacement->firstChild())
         {
-            uint16 pos = replacement->firstChild() - firstSpliceSlot;
-            while (slotPosition < pos)
-            {
-                slotArray[slotPosition+1] = slotArray[slotPosition]->next();
-                ++slotPosition;
-            }
+            int pos = replacement->firstChild() - firstSpliceSlot;
             slot->child(slotArray[pos]);
         }
         slot = slot->next();

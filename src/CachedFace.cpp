@@ -30,6 +30,8 @@ of the License or (at your option) any later version.
 #include <graphite2/Segment.h>
 #include "CachedFace.h"
 #include "SegCacheStore.h"
+#include "SegCacheEntry.h"
+#include "Segment.h"
 
 
 using namespace graphite2;
@@ -56,7 +58,7 @@ bool CachedFace::runGraphite(Segment *seg, const Silf *pSilf) const
     assert(pSilf);
     pSilf->runGraphite(seg, 0, pSilf->substitutionPass());
 
-    SegCache * segCache = NULL;
+    HashTable<SegCacheEntry> * segCache = NULL;
     unsigned int silfIndex = 0;
 
     for (unsigned int i = 0; i < m_numSilf; i++)
@@ -107,41 +109,22 @@ bool CachedFace::runGraphite(Segment *seg, const Silf *pSilf) const
             else
             {
                 // found a break position, check for a cache of the sub sequence
-                const SegCacheEntry * entry = (segCache)?
-                    segCache->find(cmapGlyphs, i - subSegStart + 1) : NULL;
-                // TODO disable cache for words at start/end of line with contextuals
-#ifndef DISABLE_TRACING
-                if (XmlTraceLog::get().active())
-                {
-                    XmlTraceLog::get().openElement(ElementSubSeg);
-                    XmlTraceLog::get().addAttribute(AttrFirstId, subSegStart);
-                    XmlTraceLog::get().addAttribute(AttrLastId, i);
-                }
-#endif
-                if (!entry)
+                SegCacheEntry * entry = new SegCacheEntry(cmapGlyphs, i - subSegStart + 1);
+                SegCacheEntry * result = segCache->insert(entry);
+                if (result == entry)        // it was inserted so fill it in now
                 {
                     unsigned int length = i - subSegStart + 1;
                     SegmentScopeState scopeState = seg->setScope(subSegStartSlot, subSegEndSlot, length);
                     pSilf->runGraphite(seg, pSilf->substitutionPass(), pSilf->numPasses());
-                    //entry =runGraphiteOnSubSeg(segCache, seg, cmapGlyphs,
-                    //                           subSegStartSlot, subSegEndSlot,
-                    //                           subSegStart, i - subSegStart + 1);
-                    if ((length < eMaxSpliceSize) && segCache)
-                        entry = segCache->cache(m_cacheStore, cmapGlyphs, length, seg, subSegStart);
+                    entry->addSegment(seg, subSegStart);
                     seg->removeScope(scopeState);
                 }
                 else
                 {
-                    //seg->splice(subSegStart, i - subSegStart + 1, subSegStartSlot, subSegEndSlot, entry);
+                    delete entry;
                     seg->splice(subSegStart, i - subSegStart + 1, subSegStartSlot, subSegEndSlot,
-                        entry->first(), entry->glyphLength());
+                        result->first(), result->glyphLength());
                 }
-#ifndef DISABLE_TRACING
-                if (XmlTraceLog::get().active())
-                {
-                    XmlTraceLog::get().closeElement(ElementSubSeg);
-                }
-#endif
             }
             subSegEndSlot = nextSlot;
             subSegStartSlot = nextSlot;

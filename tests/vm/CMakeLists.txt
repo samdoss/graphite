@@ -26,7 +26,6 @@ target_objects(OBJS graphite2
     NameTable.cpp
     Pass.cpp
     Segment.cpp
-    SegCache.cpp
     SegCacheEntry.cpp
     SegCacheStore.cpp
     Silf.cpp

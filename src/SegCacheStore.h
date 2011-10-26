@@ -30,11 +30,11 @@ of the License or (at your option) any later version.
 
 #include "Main.h"
 #include "CmapCache.h"
-#include "SegCache.h"
+#include "HashTable.h"
+#include "SegCacheEntry.h"
 
 namespace graphite2 {
 
-class SegCache;
 class Face;
 
 class SilfSegCache
@@ -43,36 +43,27 @@ public:
     SilfSegCache() : m_caches(NULL), m_cacheCount(0) {};
     ~SilfSegCache()
     {
-        assert(m_caches == NULL);
-    }
-    void clear(SegCacheStore * cacheStore)
-    {
-        for (size_t i = 0; i < m_cacheCount; i++)
-        {
-            m_caches[i]->clear(cacheStore);
-            delete m_caches[i];
-        }
+        for (uint i = 0; i < m_cacheCount; ++i)
+        { delete m_caches[i]; }
         free(m_caches);
-        m_caches = NULL;
-        m_cacheCount = 0;
     }
-    SegCache * getOrCreate(SegCacheStore * cacheStore, const Features & features)
+    HashTable<SegCacheEntry> * getOrCreate(uint16 size, const Features & features)
     {
         for (size_t i = 0; i < m_cacheCount; i++)
         {
             if (m_caches[i]->features() == features)
                 return m_caches[i];
         }
-        SegCache ** newData = gralloc<SegCache*>(m_cacheCount+1);
+        HashTable<SegCacheEntry> ** newData = gralloc<HashTable<SegCacheEntry>*>(m_cacheCount+1);
         if (newData)
         {
             if (m_cacheCount > 0)
             {
-                memcpy(newData, m_caches, sizeof(SegCache*) * m_cacheCount);
+                memcpy(newData, m_caches, sizeof(HashTable<SegCacheEntry>*) * m_cacheCount);
                 free(m_caches);
             }
             m_caches = newData;
-            m_caches[m_cacheCount] = new SegCache(cacheStore, features);
+            m_caches[m_cacheCount] = new HashTable<SegCacheEntry>(size, features);
             m_cacheCount++;
             return m_caches[m_cacheCount - 1];
         }
@@ -80,7 +71,7 @@ public:
     }
     CLASS_NEW_DELETE
 private:
-    SegCache ** m_caches;
+    HashTable<SegCacheEntry> ** m_caches;
     size_t m_cacheCount;
 };
 
@@ -90,16 +81,12 @@ public:
     SegCacheStore(const Face *face, unsigned int numSilf, size_t maxSegments);
     ~SegCacheStore()
     {
-        for (size_t i = 0; i < m_numSilf; i++)
-        {
-            m_caches[i].clear(this);
-        }
         delete [] m_caches;
         m_caches = NULL;
     }
-    SegCache * getOrCreate(unsigned int i, const Features & features)
+    HashTable<SegCacheEntry> * getOrCreate(unsigned int i, const Features & features)
     {
-        return m_caches[i].getOrCreate(this, features);
+        return m_caches[i].getOrCreate(m_maxSegments, features);
     }
     bool isSpaceGlyph(uint16 gid) const { return (gid == m_spaceGid) || (gid == m_zwspGid); }
     uint16 maxCmapGid() const { return m_maxCmapGid; }

@@ -29,13 +29,12 @@ of the License or (at your option) any later version.
 #ifndef DISABLE_SEGCACHE
 
 #include "Main.h"
+#include "Slot.h"
 
 namespace graphite2 {
 
 class Segment;
-class Slot;
 class SegCacheEntry;
-class SegCachePrefixEntry;
 
 enum SegCacheParameters {
     /** number of characters used in initial prefix tree */
@@ -65,41 +64,30 @@ public:
  */
 class SegCacheEntry
 {
-    friend class SegCachePrefixEntry;
 public:
     SegCacheEntry() :
-        m_glyphLength(0), m_unicode(NULL), m_glyph(NULL), m_attr(NULL),
-        m_accessCount(0), m_lastAccess(0)
+        m_glyphLength(0), m_unicode(NULL), m_glyph(NULL), m_attr(NULL)
     {}
-    SegCacheEntry(const uint16 * cmapGlyphs, size_t length, Segment * seg, size_t charOffset, long long cacheTime);
+    SegCacheEntry(const uint16 * cmapGlyphs, size_t length);
     ~SegCacheEntry() { clear(); };
+
+    bool cmp(SegCacheEntry *e);
+    void hash(uint16 *h, uint16 *h1, uint16 size);
+
+    void addSegment(Segment * seg, size_t charOffset);
     void clear();
     size_t glyphLength() const { return m_glyphLength; }
     const Slot * first() const { return m_glyph; }
     const Slot * last() const { return m_glyph + (m_glyphLength - 1); }
+    size_t length() const { return m_length; }
+    const uint16 *unicode() const { return m_unicode; }
 
     void log(size_t unicodeLength) const;
-    /** Total number of times this entry has been accessed since creation */
-    unsigned long long accessCount() const { return m_accessCount; }
-    /** "time" of last access where "time" is measured in accesses to the cache owning this entry */
-    void accessed(unsigned long long cacheTime) const
-    {
-        m_lastAccess = cacheTime; ++m_accessCount;
-    };
-
-    int compareRank(const SegCacheEntry & entry) const
-    {
-        if (m_accessCount > entry.m_accessCount) return 1;
-        else if (m_accessCount < entry.m_accessCount) return 1;
-        else if (m_lastAccess > entry.m_lastAccess) return 1;
-        else if (m_lastAccess < entry.m_lastAccess) return -1;
-        return 0;
-    }
-    unsigned long long lastAccess() const { return m_lastAccess; };
 
     CLASS_NEW_DELETE;
 private:
 
+    size_t m_length;
     size_t m_glyphLength;
     /** glyph ids resulting from cmap mapping from unicode to glyph before substitution
      * the length of this array is determined by the position in the SegCachePrefixEntry */
@@ -107,8 +95,6 @@ private:
     /** slots after shapping and positioning */
     Slot * m_glyph;
     uint16 * m_attr;
-    mutable unsigned long long m_accessCount;
-    mutable unsigned long long m_lastAccess;
 };
 
 } // namespace graphite2

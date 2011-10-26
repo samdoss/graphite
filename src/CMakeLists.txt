@@ -77,7 +77,6 @@ add_library(graphite2 SHARED
     GlyphFaceCache.cpp
     NameTable.cpp
     Pass.cpp
-    SegCache.cpp
     SegCacheEntry.cpp
     SegCacheStore.cpp
     Segment.cpp

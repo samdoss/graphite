@@ -8,7 +8,7 @@ if (ENABLE_COMPARE_RENDERER)
     add_subdirectory(comparerenderer)
 endif (ENABLE_COMPARE_RENDERER)
 
-add_subdirectory(segcache)
+# add_subdirectory(segcache)
 add_subdirectory(featuremap)
 add_subdirectory(nametabletest)
 add_subdirectory(examples)

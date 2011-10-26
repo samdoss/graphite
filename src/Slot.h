@@ -92,8 +92,10 @@ public:
     void attachTo(Slot *ap) { m_parent = ap; }
     Slot *attachedTo() const { return m_parent; }
     Slot* firstChild() const { return m_child; }
+    void firstChild(Slot *s) { m_child = s; }
     bool child(Slot *ap);
     Slot* nextSibling() const { return m_sibling; }
+    void nextSibling(Slot *s) { m_sibling = s; }
     bool sibling(Slot *ap);
     Slot *attachTo() const { return m_parent; }
     uint32 clusterMetric(const Segment* seg, uint8 metric, uint8 attrLevel);
