@@ -1100,7 +1100,7 @@ unsigned int Cmap310NextCodepoint(const void *pCmap310, unsigned int nUnicodeId,
 	{
 		if (pRangeKey)
 			*pRangeKey = nRange;
-		return 0x10FFFF;
+		return 0x110000;
 	}
 
 	int iRange = (pRangeKey) ? *pRangeKey : 0;
@@ -1131,7 +1131,7 @@ unsigned int Cmap310NextCodepoint(const void *pCmap310, unsigned int nUnicodeId,
 	// Otherwise the next codepoint is the first one in the next range, or 10FFFF if we're done.
 	if (pRangeKey)
 		*pRangeKey = iRange + 1;
-	return (iRange + 1 >= nRange) ? 0x10FFFF : be::swap(pTable->group[iRange + 1].start_char_code);
+	return (iRange + 1 >= nRange) ? 0x110000 : be::swap(pTable->group[iRange + 1].start_char_code);
 }
 
 /*----------------------------------------------------------------------------------------------

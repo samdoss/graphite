@@ -73,6 +73,12 @@ gr_face* gr_make_face_with_seg_cache(const void* appFaceHandle/*non-NULL*/, gr_g
                   //the appFaceHandle must stay alive all the time when the GrFace is alive. When finished with the GrFace, call destroy_face
 {
     CachedFace *res = new CachedFace(appFaceHandle, getTable);
+
+    if (!(faceOptions & gr_face_dumbRendering) && !res->getTable(Tag::Silf))
+    {
+        delete res;
+        return 0;
+    }
 #ifndef DISABLE_TRACING
     XmlTraceLog::get().openElement(ElementFace);
 #endif

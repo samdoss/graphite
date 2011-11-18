@@ -46,9 +46,9 @@ CmapCache::CmapCache(const void* cmapTable, size_t length)
         m_blocks = grzeroalloc<uint16*>(0x1100);
         if (!m_blocks) return;
         codePoint =  TtfUtil::Cmap310NextCodepoint(table310, codePoint, &rangeKey);
-        while (codePoint != 0x10FFFF)
+        while (codePoint <= 0x10FFFF)
         {
-            unsigned int block = (codePoint & 0xFFFF00) >> 8;
+            unsigned int block = codePoint >> 8;
             if (!m_blocks[block])
             {
                 m_blocks[block] = grzeroalloc<uint16>(0x100);
@@ -73,9 +73,9 @@ CmapCache::CmapCache(const void* cmapTable, size_t length)
         codePoint = 0;
         rangeKey = 0;
         codePoint =  TtfUtil::Cmap31NextCodepoint(table31, codePoint, &rangeKey);
-        while (codePoint != 0xFFFF)
+        while (codePoint < 0xFFFF)
         {
-            unsigned int block = (codePoint & 0xFFFF00) >> 8;
+            unsigned int block = codePoint >> 8;
             if (!m_blocks[block])
             {
                 m_blocks[block] = grzeroalloc<uint16>(0x100);
@@ -104,7 +104,7 @@ uint16 CmapCache::operator [] (const uint32 usv) const throw()
 {
     if ((m_isBmpOnly && usv > 0xFFFF) || (usv > 0x10FFFF))
         return 0;
-    const uint32 block = 0xFFFF & (usv >> 8);
+    const uint32 block = usv >> 8;
     if (m_blocks[block])
         return m_blocks[block][usv & 0xFF];
     return 0;

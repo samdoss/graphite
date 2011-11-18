@@ -408,6 +408,19 @@ inline uint16 Pass::glyphToCol(const uint16 gid) const
     return gid < m_numGlyphs ? m_cols[gid] : 0xffffU;
 }
 
+bool Pass::isContextInit(const uint16 gid) const
+{
+    if (gid >= m_numGlyphs) return false;
+
+    const uint16 col = m_cols[gid];
+    if (col == m_cols[0]) return true;
+
+    for (int i = m_maxPreCtxt - m_minPreCtxt + 1; i < m_sTransition; ++i)
+        if (m_sTable[i * m_sColumns + col]->transitions[col] != m_states) return false;
+
+    return true;
+}
+        
 bool Pass::runFSM(FiniteStateMachine& fsm, Slot * slot) const
 {
     int context = 0;

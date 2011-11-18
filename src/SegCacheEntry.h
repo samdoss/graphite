@@ -68,7 +68,7 @@ public:
     SegCacheEntry() :
         m_glyphLength(0), m_unicode(NULL), m_glyph(NULL), m_attr(NULL)
     {}
-    SegCacheEntry(const uint16 * cmapGlyphs, size_t length);
+    SegCacheEntry(Segment *seg, size_t start, size_t end);
     ~SegCacheEntry() { clear(); };
 
     bool cmp(SegCacheEntry *e);
@@ -80,7 +80,7 @@ public:
     const Slot * first() const { return m_glyph; }
     const Slot * last() const { return m_glyph + (m_glyphLength - 1); }
     size_t length() const { return m_length; }
-    const uint16 *unicode() const { return m_unicode; }
+    const unsigned int *unicode() const { return m_unicode; }
 
     void log(size_t unicodeLength) const;
 
@@ -91,7 +91,7 @@ private:
     size_t m_glyphLength;
     /** glyph ids resulting from cmap mapping from unicode to glyph before substitution
      * the length of this array is determined by the position in the SegCachePrefixEntry */
-    uint16 * m_unicode;
+    unsigned int * m_unicode;
     /** slots after shapping and positioning */
     Slot * m_glyph;
     uint16 * m_attr;

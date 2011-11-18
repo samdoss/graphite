@@ -37,6 +37,23 @@ namespace graphite2 {
 
 class Face;
 
+class SilfSegCacheEntry
+{
+public:
+    SilfSegCacheEntry(uint16 size, const Features &f) : m_hash(new HashTable<SegCacheEntry>(size)), m_feats(f) {};
+    ~SilfSegCacheEntry()
+    { delete m_hash; }
+
+    bool isContextInit(uint16 gid, const Silf *pSilf) const { return pSilf->isContextInit(gid); }
+    HashTable<SegCacheEntry> *hash() const { return m_hash; }
+    Features features() const { return m_feats; }
+
+    CLASS_NEW_DELETE
+private:
+    HashTable<SegCacheEntry> *m_hash;
+    Features m_feats;
+};
+
 class SilfSegCache
 {
 public:
@@ -47,23 +64,23 @@ public:
         { delete m_caches[i]; }
         free(m_caches);
     }
-    HashTable<SegCacheEntry> * getOrCreate(uint16 size, const Features & features)
+    SilfSegCacheEntry * getOrCreate(uint16 size, const Features & features)
     {
         for (size_t i = 0; i < m_cacheCount; i++)
         {
             if (m_caches[i]->features() == features)
                 return m_caches[i];
         }
-        HashTable<SegCacheEntry> ** newData = gralloc<HashTable<SegCacheEntry>*>(m_cacheCount+1);
+        SilfSegCacheEntry ** newData = gralloc<SilfSegCacheEntry *>(m_cacheCount+1);
         if (newData)
         {
             if (m_cacheCount > 0)
             {
-                memcpy(newData, m_caches, sizeof(HashTable<SegCacheEntry>*) * m_cacheCount);
+                memcpy(newData, m_caches, sizeof(SilfSegCacheEntry *) * m_cacheCount);
                 free(m_caches);
             }
             m_caches = newData;
-            m_caches[m_cacheCount] = new HashTable<SegCacheEntry>(size, features);
+            m_caches[m_cacheCount] = new SilfSegCacheEntry(size, features);
             m_cacheCount++;
             return m_caches[m_cacheCount - 1];
         }
@@ -71,7 +88,7 @@ public:
     }
     CLASS_NEW_DELETE
 private:
-    HashTable<SegCacheEntry> ** m_caches;
+    SilfSegCacheEntry **m_caches;
     size_t m_cacheCount;
 };
 
@@ -84,13 +101,10 @@ public:
         delete [] m_caches;
         m_caches = NULL;
     }
-    HashTable<SegCacheEntry> * getOrCreate(unsigned int i, const Features & features)
+    SilfSegCacheEntry * getOrCreate(unsigned int i, const Features & features)
     {
         return m_caches[i].getOrCreate(m_maxSegments, features);
     }
-    bool isSpaceGlyph(uint16 gid) const { return (gid == m_spaceGid) || (gid == m_zwspGid); }
-    uint16 maxCmapGid() const { return m_maxCmapGid; }
-    uint32 maxSegmentCount() const { return m_maxSegments; };
 
     CLASS_NEW_DELETE
 private:

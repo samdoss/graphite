@@ -71,8 +71,8 @@ private:
 template <class T> class HashTable
 {
 public:
-    HashTable(uint16 size, Features f) : 
-    _newest(delindex), _oldest(delindex), _level(0), _features(f)
+    HashTable(uint16 size) : 
+    _newest(delindex), _oldest(delindex), _level(0)
     {
         _size = size;
         if (_size > 0xFFFD) _size = 0xFFFD;
@@ -127,7 +127,6 @@ public:
         }
         return key;
     }
-    Features features() const { return _features; }
 
     CLASS_NEW_DELETE;
 
@@ -138,7 +137,6 @@ private:
     uint16 _size;
     uint16 _full;
     uint16 _level;
-    Features _features;
 };
 
 }

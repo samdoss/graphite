@@ -69,6 +69,7 @@ public:
     uint16 findClassIndex(uint16 cid, uint16 gid) const;
     uint16 getClassGlyph(uint16 cid, int index) const;
     uint16 findPseudo(uint32 uid) const;
+    bool isContextInit(const uint16 gid) const;
     uint8 numUser() const { return m_aUser; }
     uint8 aPseudo() const { return m_aPseudo; }
     uint8 aBreak() const { return m_aBreak; }

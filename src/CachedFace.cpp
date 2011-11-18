@@ -56,85 +56,49 @@ bool CachedFace::setupCache(unsigned int cacheSize)
 bool CachedFace::runGraphite(Segment *seg, const Silf *pSilf) const
 {
     assert(pSilf);
-    pSilf->runGraphite(seg, 0, pSilf->substitutionPass());
 
-    HashTable<SegCacheEntry> * segCache = NULL;
+    if (!seg->charInfoCount()) return true;
+    SilfSegCacheEntry * segCache = NULL;
     unsigned int silfIndex = 0;
 
-    for (unsigned int i = 0; i < m_numSilf; i++)
-    {
-        if (&(m_silfs[i]) == pSilf)
-        {
+    for (silfIndex = 0; silfIndex < m_numSilf; silfIndex++)
+        if (&(m_silfs[silfIndex]) == pSilf)
             break;
-        }
-    }
+
     assert(silfIndex < m_numSilf);
     assert(m_cacheStore);
     segCache = m_cacheStore->getOrCreate(silfIndex, seg->getFeatures(0));
     // find where the segment can be broken
     Slot * subSegStartSlot = seg->first();
-    Slot * subSegEndSlot = subSegStartSlot;
-    uint16 cmapGlyphs[eMaxSpliceSize];
+    Slot * subSegLastSlot = subSegStartSlot;
+    Slot * subSegEndSlot = subSegStartSlot->next();
     int subSegStart = 0;
-    bool spaceOnly = true;
     for (unsigned int i = 0; i < seg->charInfoCount(); i++)
     {
-        if (i - subSegStart < eMaxSpliceSize)
+        if (!subSegEndSlot || segCache->isContextInit(subSegEndSlot->gid(), pSilf))
         {
-            cmapGlyphs[i-subSegStart] = subSegEndSlot->gid();
-        }
-        if (!m_cacheStore->isSpaceGlyph(subSegEndSlot->gid()))
-        {
-            spaceOnly = false;
-        }
-        // at this stage the character to slot mapping is still 1 to 1
-        int breakWeight = seg->charinfo(i)->breakWeight();
-        int nextBreakWeight = (i + 1 < seg->charInfoCount())?
-            seg->charinfo(i+1)->breakWeight() : 0;
-        if (((breakWeight > 0) &&
-             (breakWeight <= gr_breakWord)) ||
-            (i + 1 == seg->charInfoCount()) ||
-             m_cacheStore->isSpaceGlyph(subSegEndSlot->gid()) ||
-            ((i + 1 < seg->charInfoCount()) &&
-             (((nextBreakWeight < 0) &&
-              (nextBreakWeight >= gr_breakBeforeWord)) ||
-              (subSegEndSlot->next() && m_cacheStore->isSpaceGlyph(subSegEndSlot->next()->gid())))))
-        {
-            // record the next slot before any splicing
-            Slot * nextSlot = subSegEndSlot->next();
-            if (spaceOnly)
+            // found a break position, check for a cache of the sub sequence
+            SegCacheEntry * entry = new SegCacheEntry(seg, subSegStart, i + 1);
+            SegCacheEntry * result = segCache->hash()->insert(entry);
+            if (result == entry)        // it was inserted so fill it in now
             {
-                // spaces should be left untouched by graphite rules in any sane font
+                unsigned int length = i - subSegStart + 1;
+                SegmentScopeState scopeState = seg->setScope(subSegStartSlot, subSegLastSlot, length);
+                pSilf->runGraphite(seg, 0, pSilf->numPasses());
+                entry->addSegment(seg, subSegStart);
+                seg->removeScope(scopeState);
             }
             else
             {
-                // found a break position, check for a cache of the sub sequence
-                SegCacheEntry * entry = new SegCacheEntry(cmapGlyphs, i - subSegStart + 1);
-                SegCacheEntry * result = segCache->insert(entry);
-                if (result == entry)        // it was inserted so fill it in now
-                {
-                    unsigned int length = i - subSegStart + 1;
-                    SegmentScopeState scopeState = seg->setScope(subSegStartSlot, subSegEndSlot, length);
-                    pSilf->runGraphite(seg, pSilf->substitutionPass(), pSilf->numPasses());
-                    entry->addSegment(seg, subSegStart);
-                    seg->removeScope(scopeState);
-                }
-                else
-                {
-                    delete entry;
-                    seg->splice(subSegStart, i - subSegStart + 1, subSegStartSlot, subSegEndSlot,
-                        result->first(), result->glyphLength());
-                }
+                delete entry;
+                seg->splice(subSegStart, i - subSegStart + 1, subSegStartSlot, subSegLastSlot,
+                    result->first(), result->glyphLength());
             }
-            subSegEndSlot = nextSlot;
-            subSegStartSlot = nextSlot;
+            subSegStartSlot = subSegEndSlot;
             subSegStart = i + 1;
-            spaceOnly = true;
         }
-        else
-        {
-            subSegEndSlot = subSegEndSlot->next();
-        }
+        subSegLastSlot = subSegEndSlot;
+        if (subSegEndSlot) subSegEndSlot = subSegEndSlot->next();
     }
     return true;
 }

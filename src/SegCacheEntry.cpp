@@ -95,12 +95,12 @@ uint PtrMap::lookup(ptrdiff_t p)
     return 0;
 }
 
-SegCacheEntry::SegCacheEntry(const uint16* cmapGlyphs, size_t len)
-    : m_length(len), m_glyphLength(0), m_unicode(gralloc<uint16>(len)), m_glyph(NULL),
+SegCacheEntry::SegCacheEntry(Segment *seg, size_t start, size_t end)
+    : m_length(end - start), m_glyphLength(0), m_unicode(gralloc<unsigned int>(end - start)), m_glyph(NULL),
     m_attr(NULL)
 {
-    for (uint16 i = 0; i < len; ++i)
-    { m_unicode[i] = cmapGlyphs[i]; }
+    for (unsigned int i = start, *p = m_unicode; i < end; ++i)
+        *p++ = seg->charinfo(i)->unicodeChar();
 }
 
 void SegCacheEntry::addSegment(Segment * seg, size_t charOffset)
@@ -144,7 +144,7 @@ void SegCacheEntry::addSegment(Segment * seg, size_t charOffset)
 bool SegCacheEntry::cmp(SegCacheEntry *e)
 {
     if (m_length != e->length()) return false;
-    for (const uint16 *g = m_unicode, *end = m_unicode + m_length, *o = e->unicode(); g != end; ++g, ++o)
+    for (const unsigned int *g = m_unicode, *end = m_unicode + m_length, *o = e->unicode(); g != end; ++g, ++o)
     { if (*g != *o) return false; }
     return true;
 }
@@ -153,7 +153,7 @@ void SegCacheEntry::hash(uint16 *h, uint16 *h1, uint16 size)
 {
     uint nh = 16777551;
     uint nh1 = 2166136261;
-    for (uint16 *g = m_unicode, *e = m_unicode + m_length; g != e; ++g)
+    for (unsigned int *g = m_unicode, *e = m_unicode + m_length; g != e; ++g)
     {
         nh = ((nh << 7) | (nh >> 31)) ^ *g;
         nh1 = (nh1 * 16777619) ^ *g;

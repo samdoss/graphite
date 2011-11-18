@@ -48,6 +48,8 @@ public:
     bool readPass(void* pPass, size_t pass_length, size_t subtable_base, const Face & face);
     void runGraphite(vm::Machine & m, FiniteStateMachine & fsm) const;
     void init(Silf *silf) { m_silf = silf; }
+    uint16 glyphToCol(const uint16 gid) const;
+    bool   isContextInit(const uint16 gid) const;
 
     CLASS_NEW_DELETE
 private:
@@ -65,7 +67,6 @@ private:
     bool   readStates(const int16 * starts, const int16 * states, const uint16 * o_rule_map);
     void   logStates() const;
     bool   readRanges(const uint16* ranges, size_t num_ranges);
-    uint16 glyphToCol(const uint16 gid) const;
     bool   runFSM(FiniteStateMachine & fsm, Slot * slot) const;
     
     const Silf* m_silf;
