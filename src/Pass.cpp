@@ -403,11 +403,6 @@ void Pass::runGraphite(Machine & m, FiniteStateMachine & fsm) const
     } while (s);
 }
 
-inline uint16 Pass::glyphToCol(const uint16 gid) const
-{
-    return gid < m_numGlyphs ? m_cols[gid] : 0xffffU;
-}
-
 bool Pass::isContextInit(const uint16 gid) const
 {
     if (gid >= m_numGlyphs) return false;

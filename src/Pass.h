@@ -48,8 +48,8 @@ public:
     bool readPass(void* pPass, size_t pass_length, size_t subtable_base, const Face & face);
     void runGraphite(vm::Machine & m, FiniteStateMachine & fsm) const;
     void init(Silf *silf) { m_silf = silf; }
-    uint16 glyphToCol(const uint16 gid) const;
-    bool   isContextInit(const uint16 gid) const;
+    uint16 glyphToCol(uint16 gid) const;
+    bool   isContextInit(uint16 gid) const;
 
     CLASS_NEW_DELETE
 private:
@@ -93,5 +93,10 @@ private:		//defensive
     Pass(const Pass&);
     Pass& operator=(const Pass&);
 };
+
+inline uint16 Pass::glyphToCol(const uint16 gid) const
+{
+    return gid < m_numGlyphs ? m_cols[gid] : 0xffffU;
+}
 
 } // namespace graphite2
