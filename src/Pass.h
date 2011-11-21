@@ -49,7 +49,7 @@ public:
     void runGraphite(vm::Machine & m, FiniteStateMachine & fsm) const;
     void init(Silf *silf) { m_silf = silf; }
     uint16 glyphToCol(uint16 gid) const;
-    bool   isContextInit(uint16 gid) const;
+    int  cutGlyph(uint16 gid) const;
 
     CLASS_NEW_DELETE
 private:

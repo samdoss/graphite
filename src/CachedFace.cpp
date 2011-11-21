@@ -75,7 +75,7 @@ bool CachedFace::runGraphite(Segment *seg, const Silf *pSilf) const
     int subSegStart = 0;
     for (unsigned int i = 0; i < seg->charInfoCount(); i++)
     {
-        if (!subSegEndSlot || segCache->isContextInit(subSegEndSlot->gid(), pSilf))
+        if (!subSegEndSlot || (i < seg->charInfoCount() - 1 && m_cacheStore->cutChar(seg->charinfo(i + 1)->unicodeChar(), silfIndex)))
         {
             // found a break position, check for a cache of the sub sequence
             SegCacheEntry * entry = new SegCacheEntry(seg, subSegStart, i + 1);

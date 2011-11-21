@@ -34,15 +34,45 @@ of the License or (at your option) any later version.
 using namespace graphite2;
 
 SegCacheStore::SegCacheStore(const Face *face, unsigned int numSilf, size_t maxSegments)
- : m_caches(new SilfSegCache[numSilf]), m_numSilf(numSilf), m_maxSegments(maxSegments),
-   m_maxCmapGid(0)
+ : m_numSilf(numSilf), m_maxSegments(maxSegments)
 {
     assert(face);
     assert(face->getGlyphFaceCache());
-    m_maxCmapGid = face->getGlyphFaceCache()->numGlyphs();
+    m_caches = gralloc<SilfSegCache>(numSilf);
+    while (numSilf--)
+    {
+        ::new (m_caches + numSilf) SilfSegCache(face, numSilf);
+    }
+    
+}
 
-    m_spaceGid = face->cmap()[0x20];
-    m_zwspGid = face->cmap()[0x200B];
+SilfSegCache::SilfSegCache(const Face *face, int iSilf)
+ : m_caches(NULL), m_cacheCount(0)
+{
+    m_isBmpOnly = face->cmap().isBmpOnly();
+    m_charCut = grzeroalloc<uint8 *>(m_isBmpOnly ? 0x4 : 0x44);
+    int cBlock = -1;
+    uint32 chr = 0;
+    uint16 gid = 0;
+    while (face->cmap().nextEntry(&chr, &gid))
+    {
+        if ((chr >> 10) > cBlock)
+        {
+            cBlock = chr >> 10;
+            m_charCut[cBlock] = grzeroalloc<uint8>(0x400);
+        }
+        m_charCut[cBlock][(chr >> 2) & 0xFF] = face->silf(iSilf)->cutGlyph(gid) << ((chr & 0x3) * 2);
+    }
+}
+
+int SilfSegCache::cutChar(uint32 chr) const throw()
+{
+    if ((m_isBmpOnly && chr > 0xFFFF) || chr > 0x10FFFF)
+        return 0;
+    int block = chr >> 10;
+    if (!m_charCut[block])
+        return 0;
+    return (m_charCut[block][(chr >> 2) & 0xFF] >> ((chr & 0x3) * 2)) & 0x3;
 }
 
 #endif

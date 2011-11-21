@@ -403,17 +403,25 @@ void Pass::runGraphite(Machine & m, FiniteStateMachine & fsm) const
     } while (s);
 }
 
-bool Pass::isContextInit(const uint16 gid) const
+int Pass::cutGlyph(uint16 gid) const
 {
-    if (gid >= m_numGlyphs) return false;
+    if (gid >= m_numGlyphs) return 0;
 
     const uint16 col = m_cols[gid];
-    if (col == m_cols[0]) return true;
+    if (col == m_cols[0]) return 3;
 
+    int res = 3;
     for (int i = m_maxPreCtxt - m_minPreCtxt + 1; i < m_sTransition; ++i)
-        if (m_sTable[i * m_sColumns + col]->transitions[col] != m_states) return false;
-
-    return true;
+    {
+        size_t row = m_sTable[i * m_sColumns + col]->transitions[col] - m_states;
+        if (row && i > m_maxPreCtxt - m_minPreCtxt)
+            res &= 2;
+        if (row < m_sTransition)        // need to test success state to see if modifies final
+            res &= 1;
+        if (!res)
+            return 0;
+    }
+    return res;
 }
         
 bool Pass::runFSM(FiniteStateMachine& fsm, Slot * slot) const

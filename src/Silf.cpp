@@ -359,13 +359,15 @@ uint16 Silf::getClassGlyph(uint16 cid, int index) const
     return 0;
 }
 
-bool Silf::isContextInit(const uint16 gid) const
+int Silf::cutGlyph(const uint16 gid) const
 {
-    for (size_t i = m_sPass; i < m_pPass; ++i)
-        if (m_passes[i].glyphToCol(gid) != m_passes[i].glyphToCol(0)) return false;
-    for (size_t i = m_pPass; i < m_numPasses; ++i)
-        if (!m_passes[i].isContextInit(gid)) return false;
-    return true;
+    int res = 3;
+    for (size_t i = m_sPass; i < m_numPasses; ++i)
+    {
+        res &= m_passes[i].cutGlyph(gid);
+        if (!res) return 0;
+    }
+    return res; 
 }
 
 bool Silf::runGraphite(Segment *seg, uint8 firstPass, uint8 lastPass) const

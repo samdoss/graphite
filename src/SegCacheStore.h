@@ -44,9 +44,8 @@ public:
     ~SilfSegCacheEntry()
     { delete m_hash; }
 
-    bool isContextInit(uint16 gid, const Silf *pSilf) const { return pSilf->isContextInit(gid); }
     HashTable<SegCacheEntry> *hash() const { return m_hash; }
-    Features features() const { return m_feats; }
+    const Features & features() const { return m_feats; }
 
     CLASS_NEW_DELETE
 private:
@@ -57,7 +56,7 @@ private:
 class SilfSegCache
 {
 public:
-    SilfSegCache() : m_caches(NULL), m_cacheCount(0) {};
+    SilfSegCache(const Face *face, int iSilf);
     ~SilfSegCache()
     {
         for (uint i = 0; i < m_cacheCount; ++i)
@@ -68,7 +67,7 @@ public:
     {
         for (size_t i = 0; i < m_cacheCount; i++)
         {
-            if (m_caches[i]->features() == features)
+            if (&(m_caches[i]->features()) == &features)
                 return m_caches[i];
         }
         SilfSegCacheEntry ** newData = gralloc<SilfSegCacheEntry *>(m_cacheCount+1);
@@ -86,10 +85,14 @@ public:
         }
         return NULL;
     }
+    int cutChar(uint32 chr) const throw();
+
     CLASS_NEW_DELETE
 private:
     SilfSegCacheEntry **m_caches;
     size_t m_cacheCount;
+    uint8 **m_charCut;
+    bool m_isBmpOnly;
 };
 
 class SegCacheStore
@@ -98,22 +101,22 @@ public:
     SegCacheStore(const Face *face, unsigned int numSilf, size_t maxSegments);
     ~SegCacheStore()
     {
-        delete [] m_caches;
+        for (int i = m_numSilf; i--; )
+        { m_caches[i].~SilfSegCache(); }
+        free(m_caches);
         m_caches = NULL;
     }
     SilfSegCacheEntry * getOrCreate(unsigned int i, const Features & features)
     {
         return m_caches[i].getOrCreate(m_maxSegments, features);
     }
+    int cutChar(uint32 chr, int silfIndex) { return m_caches[silfIndex].cutChar(chr); }
 
     CLASS_NEW_DELETE
 private:
     SilfSegCache * m_caches;
     uint8 m_numSilf;
     uint32 m_maxSegments;
-    uint16 m_maxCmapGid;
-    uint16 m_spaceGid;
-    uint16 m_zwspGid;
 };
 
 } // namespace graphite2

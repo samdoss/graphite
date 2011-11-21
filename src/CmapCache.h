@@ -36,10 +36,10 @@ class Cmap
 {
 public:
 	virtual ~Cmap() throw() {}
-
 	virtual uint16 operator [] (const uint32) const throw() { return 0; }
-
 	virtual operator bool () const throw() { return false; }
+    virtual bool nextEntry(uint32 * /*chr*/, uint16 * /*gid*/) { return false; }
+    virtual bool isBmpOnly() { return false; }
 
 	CLASS_NEW_DELETE;
 };
@@ -50,6 +50,8 @@ public:
 	DirectCmap(const void* cmap, size_t length);
 	virtual uint16 operator [] (const uint32 usv) const throw();
 	virtual operator bool () const throw();
+    virtual bool nextEntry(uint32 *chr, uint16 *gid) const throw();
+    virtual bool isBmpOnly() const throw();
 
     CLASS_NEW_DELETE;
 private:
@@ -64,6 +66,9 @@ public:
 	virtual ~CmapCache() throw();
 	virtual uint16 operator [] (const uint32 usv) const throw();
 	virtual operator bool () const throw();
+    virtual bool nextEntry(uint32 *chr, uint16 *gid) const throw();
+    virtual bool isBmpOnly() const throw();
+
     CLASS_NEW_DELETE;
 private:
     bool m_isBmpOnly;
