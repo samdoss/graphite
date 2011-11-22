@@ -27,6 +27,7 @@ of the License or (at your option) any later version.
 #pragma once
 
 #include <Main.h>
+#include <cassert>
 
 namespace graphite2 {
 
@@ -38,8 +39,8 @@ public:
 	virtual ~Cmap() throw() {}
 	virtual uint16 operator [] (const uint32) const throw() { return 0; }
 	virtual operator bool () const throw() { return false; }
-    virtual bool nextEntry(uint32 * /*chr*/, uint16 * /*gid*/) { return false; }
-    virtual bool isBmpOnly() { return false; }
+    virtual bool nextEntry(uint32 * /*chr*/, uint16 * /*gid*/) const throw() { assert(false); return false; }
+    virtual bool isBmpOnly() const throw() { return false; }
 
 	CLASS_NEW_DELETE;
 };

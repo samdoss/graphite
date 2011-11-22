@@ -43,7 +43,7 @@ struct Ptr {
 class PtrMap {
 public:
     PtrMap(size_t length) {
-        _size = length * 1.5;
+        _size = length * 1.75;
         if (!(_size & 1)) ++_size;
         _table = grzeroalloc<Ptr>((size_t)_size);
     }

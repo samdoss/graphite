@@ -30,6 +30,9 @@ of the License or (at your option) any later version.
 #include "SegCacheStore.h"
 #include "Face.h"
 
+#ifndef NDEBUG
+#include <stdio.h>
+#endif
 
 using namespace graphite2;
 
@@ -50,18 +53,22 @@ SilfSegCache::SilfSegCache(const Face *face, int iSilf)
  : m_caches(NULL), m_cacheCount(0)
 {
     m_isBmpOnly = face->cmap().isBmpOnly();
-    m_charCut = grzeroalloc<uint8 *>(m_isBmpOnly ? 0x4 : 0x44);
+    m_charCut = grzeroalloc<uint8 *>(m_isBmpOnly ? (0x10000 >> 10) : (0x110000 >> 10));
     int cBlock = -1;
     uint32 chr = 0;
     uint16 gid = 0;
     while (face->cmap().nextEntry(&chr, &gid))
     {
-        if ((chr >> 10) > cBlock)
+        if (int(chr >> 10) > cBlock)
         {
             cBlock = chr >> 10;
-            m_charCut[cBlock] = grzeroalloc<uint8>(0x400);
+            m_charCut[cBlock] = grzeroalloc<uint8>(1 << 10);
         }
-        m_charCut[cBlock][(chr >> 2) & 0xFF] = face->silf(iSilf)->cutGlyph(gid) << ((chr & 0x3) * 2);
+        int cut = face->silf(iSilf)->cutGlyph(gid);
+        m_charCut[cBlock][(chr >> 2) & 0xFF] |= (cut << ((chr & 0x3) * 2));
+#ifndef NDEBUG
+        fprintf(stderr, "%04X -> %d\n", chr, cut);
+#endif
     }
 }
 

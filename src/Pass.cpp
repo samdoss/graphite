@@ -375,6 +375,27 @@ bool Pass::readRanges(const uint16 *ranges, size_t num_ranges)
     return true;
 }
 
+int Pass::cutGlyph(uint16 gid) const
+{
+    if (gid >= m_numGlyphs) return 0;
+
+    const uint16 col = m_cols[gid];
+    if (col == m_cols[0]) return 3;
+
+    int res = 3;
+    for (int i = 0; i < m_sTransition; ++i)
+    {
+        size_t row = m_states[i].transitions[col] - m_states;
+        if (row && i > m_maxPreCtxt - m_minPreCtxt)
+            res &= 2;
+        if (row < m_sTransition)        // need to test success state to see if modifies final
+            res &= 1;
+        if (!res)
+            return 0;
+    }
+    return res;
+}
+        
 void Pass::runGraphite(Machine & m, FiniteStateMachine & fsm) const
 {
     Slot *s = m.slotMap().segment.first();
@@ -403,27 +424,6 @@ void Pass::runGraphite(Machine & m, FiniteStateMachine & fsm) const
     } while (s);
 }
 
-int Pass::cutGlyph(uint16 gid) const
-{
-    if (gid >= m_numGlyphs) return 0;
-
-    const uint16 col = m_cols[gid];
-    if (col == m_cols[0]) return 3;
-
-    int res = 3;
-    for (int i = m_maxPreCtxt - m_minPreCtxt + 1; i < m_sTransition; ++i)
-    {
-        size_t row = m_sTable[i * m_sColumns + col]->transitions[col] - m_states;
-        if (row && i > m_maxPreCtxt - m_minPreCtxt)
-            res &= 2;
-        if (row < m_sTransition)        // need to test success state to see if modifies final
-            res &= 1;
-        if (!res)
-            return 0;
-    }
-    return res;
-}
-        
 bool Pass::runFSM(FiniteStateMachine& fsm, Slot * slot) const
 {
     int context = 0;
