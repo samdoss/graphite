@@ -9,6 +9,30 @@ if (ENABLE_COMPARE_RENDERER)
 endif (ENABLE_COMPARE_RENDERER)
 
 # add_subdirectory(segcache)
+include_directories(${graphite2_core_SOURCE_DIR})
+set(S ${graphite2_core_SOURCE_DIR})
+
+if(DISABLE_TRACING)
+    set(TRACESUPPORT "")
+else(DISABLE_TRACING)
+    set(TRACESUPPORT ${S}/XmlTraceLog.cpp ${S}/XmlTraceLogTags.cpp)
+endif(DISABLE_TRACING)
+
+add_library(graphite2-base
+    ${S}/FeatureMap.cpp
+    ${S}/NameTable.cpp
+    ${S}/Sparse.cpp
+    ${S}/TtfUtil.cpp
+    ${S}/UtfCodec.cpp
+    ${TRACESUPPORT})
+
+add_library(graphite2-segcache
+    ${S}/SegCacheEntry.cpp
+    ${S}/SegCacheStore.cpp
+    ${S}/Slot.cpp
+    ${S}/GlyphFaceCache.cpp
+    ${S}/GlyphFace.cpp)
+
 add_subdirectory(featuremap)
 add_subdirectory(nametabletest)
 add_subdirectory(examples)
@@ -41,6 +65,7 @@ fonttest(charis5 charis_r_gr.ttf 0020 006C 0325 0065)
 fonttest(magyar1 MagyarLinLibertineG.ttf 0031 0035 -feat 210=36)
 fonttest(magyar2 MagyarLinLibertineG.ttf 0031 0030 -feat 210=200)
 fonttest(magyar3 MagyarLinLibertineG.ttf 0066 0069 0066 0074 0079 002d 0066 0069 0076 0065 -feat 209=3)
+fonttest(grtest1 grtest1gr.ttf 0062 0061 0061 0061 0061 0061 0061 0062 0061)
 
 feattest(padauk_feat Padauk.ttf)
 feattest(charis_feat charis_r_gr.ttf)

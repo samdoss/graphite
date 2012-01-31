@@ -27,18 +27,17 @@ of the License or (at your option) any later version.
 #include "Main.h"
 #include "Endian.h"
 #include "Pass.h"
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
 #include "Segment.h"
 #include "Code.h"
 #include "Rule.h"
 #include "XmlTraceLog.h"
 
 using namespace graphite2;
-
-using vm::Code;
 using vm::Machine;
+typedef Machine::Code  Code;
 
 
 Pass::Pass()
@@ -154,7 +153,7 @@ bool Pass::readPass(void *pass, size_t pass_length, size_t subtable_base, const 
     // Load the pass constraint if there is one.
     if (pass_constraint_len)
     {
-        m_cPConstraint = vm::Code(true, pcCode, pcCode + pass_constraint_len, 
+        m_cPConstraint = vm::Machine::Code(true, pcCode, pcCode + pass_constraint_len, 
                                   precontext[0], be::swap<uint16>(sort_keys[0]), *m_silf, face);
         if (!m_cPConstraint) return false;
     }
@@ -200,8 +199,8 @@ bool Pass::readRules(const uint16 * rule_map, const size_t num_entries,
         if (ac_begin > ac_end || ac_begin > ac_data_end || ac_end > ac_data_end
                 || rc_begin > rc_end || rc_begin > rc_data_end || rc_end > rc_data_end)
             return false;
-        r->action     = new vm::Code(false, ac_begin, ac_end, r->preContext, r->sort, *m_silf, face);
-        r->constraint = new vm::Code(true,  rc_begin, rc_end, r->preContext, r->sort, *m_silf, face);
+        r->action     = new vm::Machine::Code(false, ac_begin, ac_end, r->preContext, r->sort, *m_silf, face);
+        r->constraint = new vm::Machine::Code(true,  rc_begin, rc_end, r->preContext, r->sort, *m_silf, face);
 
         if (!r->action || !r->constraint
                 || r->action->status() != Code::loaded
@@ -407,19 +406,12 @@ void Pass::runGraphite(Machine & m, FiniteStateMachine & fsm) const
     do
     {
         findNDoRule(s, m, fsm);
-        if (currHigh != m.slotMap().highwater() && currHigh) {
-            lc = m_iMaxLoop;
-            currHigh = m.slotMap().highwater();
-        }
-        else if (--lc == 0)
-        {
-            lc = m_iMaxLoop;
-            s = currHigh;
+        if (s && (m.slotMap().highpassed() || s == m.slotMap().highwater() || --lc == 0)) {
+        	if (!lc)
+        		s = m.slotMap().highwater();
+        	lc = m_iMaxLoop;
             if (s)
-            {
-                currHigh = s->next();
-                m.slotMap().highwater(currHigh);
-            }
+            	m.slotMap().highwater(s->next());
         }
     } while (s);
 }
@@ -507,8 +499,6 @@ void Pass::findNDoRule(Slot * & slot, Machine &m, FiniteStateMachine & fsm) cons
     }
 
     slot = slot->next();
-    if (m.slotMap().highwater() == slot && slot)
-        m.slotMap().highwater(slot->next());
 }
 
 
@@ -521,10 +511,9 @@ bool Pass::testPassConstraint(Machine & m) const
 
     vm::slotref * map = m.slotMap().begin();
     *map = m.slotMap().segment.first();
-    Machine::status_t status = Machine::finished;
-    const uint32 ret = m_cPConstraint.run(m, map, status);
+    const uint32 ret = m_cPConstraint.run(m, map);
 
-    return ret || status != Machine::finished;
+    return ret || m.status() != Machine::finished;
 }
 
 
@@ -543,12 +532,11 @@ bool Pass::testConstraint(const Rule &r, Machine & m) const
     }
 #endif
     vm::slotref * map = m.slotMap().begin() + m.slotMap().context() - r.preContext;
-    Machine::status_t status = Machine::finished;
     for (int n = r.sort; n && map; --n, ++map)
     {
 	if (!*map) continue;
-        const int32 ret = r.constraint->run(m, map, status);
-        if (!ret || status != Machine::finished)
+        const int32 ret = r.constraint->run(m, map);
+        if (!ret || m.status() != Machine::finished)
         {
 #ifdef ENABLE_DEEP_TRACING
             if (XmlTraceLog::get().active())
@@ -577,18 +565,23 @@ void Pass::doAction(const Code *codeptr, Slot * & slot_out, vm::Machine & m) con
     if (!*codeptr) return;
     SlotMap   & smap = m.slotMap();
     vm::slotref * map = &smap[smap.context()];
+    smap.highpassed(false);
 
     Segment & seg = smap.segment;
     int glyph_diff = -static_cast<int>(seg.slotCount());
-    Machine::status_t status;
-    int32 ret = codeptr->run(m, map, status);
+    int32 ret = codeptr->run(m, map);
     glyph_diff += seg.slotCount();
     if (codeptr->deletes())
     {
         for (Slot **s = smap.begin(), *const * const se = smap.end()-1; s != se; ++s)
         {
             Slot * & slot = *s;
-            if (slot->isDeleted() || slot->isCopied()) seg.freeSlot(slot);
+            if (slot->isDeleted() || slot->isCopied())
+            {
+            	if (slot == smap.highwater())
+            		smap.highwater(slot->next());
+            	seg.freeSlot(slot);
+            }
         }
     }
 
@@ -599,10 +592,14 @@ void Pass::doAction(const Code *codeptr, Slot * & slot_out, vm::Machine & m) con
         {
             slot_out = seg.last();
             ++ret;
+            if (smap.highpassed() && !smap.highwater())
+            	smap.highpassed(false);
         }
         while (++ret <= 0 && slot_out)
         {
             slot_out = slot_out->prev();
+            if (smap.highpassed() && smap.highwater() == slot_out)
+            	smap.highpassed(false);
         }
     }
     else if (ret > 0)
@@ -616,8 +613,12 @@ void Pass::doAction(const Code *codeptr, Slot * & slot_out, vm::Machine & m) con
         {
             slot_out = slot_out->next();
             if (slot_out == smap.highwater() && slot_out)
-                smap.highwater(slot_out->next());
+                smap.highpassed(true);
         }
     }
-    if (status != Machine::finished && slot_out) slot_out = NULL;
+    if (m.status() != Machine::finished)
+    {
+    	slot_out = NULL;
+    	m.slotMap().highwater(0);
+    }
 }
