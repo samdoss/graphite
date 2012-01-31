@@ -4,6 +4,7 @@ include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(GRAPHITE2_COMPARE_RENDERER "Build tool to compare output of different renderers" ON
                         "NOT GRAPHITE2_NFILEFACE;NOT GRAPHITE2_NSEGCACHE" OFF)
 
+# add_subdirectory(segcache)
 include_directories(${graphite2_core_SOURCE_DIR})
 set(S ${graphite2_core_SOURCE_DIR})
 
@@ -19,7 +20,6 @@ add_library(graphite2-segcache STATIC
     ${S}/GlyphFace.cpp
     ${S}/gr_logging.cpp
     ${S}/json.cpp
-    ${S}/SegCache.cpp
     ${S}/SegCacheEntry.cpp
     ${S}/SegCacheStore.cpp
     ${S}/Slot.cpp)
@@ -28,17 +28,14 @@ add_library(graphite2-segcache STATIC
 if (GRAPHITE2_COMPARE_RENDERER)
     add_subdirectory(comparerenderer)
 endif (GRAPHITE2_COMPARE_RENDERER)
+add_subdirectory(featuremap)
+add_subdirectory(nametabletest)
+add_subdirectory(grlist)
+add_subdirectory(json)
 add_subdirectory(endian)
 if (NOT GRAPHITE2_NFILEFACE)
     add_subdirectory(examples)
 endif (NOT GRAPHITE2_NFILEFACE)
-add_subdirectory(featuremap)
-add_subdirectory(grlist)
-add_subdirectory(json)
-add_subdirectory(nametabletest)
-if (NOT (GRAPHITE2_NSEGCACHE OR GRAPHITE2_NFILEFACE))
-    add_subdirectory(segcache)
-endif (NOT (GRAPHITE2_NSEGCACHE OR GRAPHITE2_NFILEFACE))
 add_subdirectory(utftest)
 if (NOT GRAPHITE2_NFILEFACE)
     add_subdirectory(vm)

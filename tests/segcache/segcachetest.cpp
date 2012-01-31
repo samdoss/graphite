@@ -26,7 +26,6 @@
 #include "inc/Face.h"
 #include "inc/CachedFace.h"
 #include "inc/Segment.h"
-#include "inc/SegCache.h"
 #include "inc/SegCacheStore.h"
 #include "inc/UtfCodec.h"
 #include "inc/TtfTypes.h"

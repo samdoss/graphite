@@ -41,7 +41,7 @@ class FiniteStateMachine;
 
 class Pass
 {   
-public:
+public :
     Pass();
     ~Pass();
     
@@ -50,7 +50,7 @@ public:
     void init(Silf *silf) { m_silf = silf; }
 
     CLASS_NEW_DELETE
-private:
+private :
     void   	findNDoRule(Slot* & iSlot, vm::Machine &, FiniteStateMachine& fsm) const;
     int   	doAction(const vm::Machine::Code* codeptr, Slot * & slot_out, vm::Machine &) const;
     bool   	testPassConstraint(vm::Machine & m) const;
@@ -88,9 +88,14 @@ private:
     byte m_maxPreCtxt;
     vm::Machine::Code m_cPConstraint;
     
-private:		//defensive
+private	:	//defensive
     Pass(const Pass&);
     Pass& operator=(const Pass&);
 };
+
+inline uint16 Pass::glyphToCol(const uint16 gid) const
+{
+    return gid < m_numGlyphs ? m_cols[gid] : 0xffffU;
+}
 
 } // namespace graphite2

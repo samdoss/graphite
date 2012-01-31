@@ -30,21 +30,81 @@ of the License or (at your option) any later version.
 #include "inc/Main.h"
 #include "inc/Slot.h"
 #include "inc/Segment.h"
-#include "inc/SegCache.h"
 #include "inc/SegCacheEntry.h"
 
 
 using namespace graphite2;
 
-SegCacheEntry::SegCacheEntry(const uint16* cmapGlyphs, size_t length, Segment * seg, size_t charOffset, long long cacheTime)
-    : m_glyphLength(0), m_unicode(gralloc<uint16>(length)), m_glyph(NULL),
-    m_attr(NULL),
-    m_accessCount(0), m_lastAccess(cacheTime)
-{
-    for (uint16 i = 0; i < length; i++)
-    {
-        m_unicode[i] = cmapGlyphs[i];
+struct Ptr {
+    ptrdiff_t _p;
+    uint _o;
+};
+
+class PtrMap {
+public :
+    PtrMap(size_t length) {
+        _size = length * 1.75;
+        if (!(_size & 1)) ++_size;
+        _table = grzeroalloc<Ptr>((size_t)_size);
     }
+    ~PtrMap() { free(_table); }
+    void inc(uint &offset, uint &delta, uint hash);
+    void insert(ptrdiff_t p, uint offset);
+    uint lookup(ptrdiff_t p);
+private :
+    Ptr *_table;
+    uint _size;
+};
+
+void PtrMap::inc(uint &offset, uint &delta, uint hash)
+{
+    if (delta == 0) delta = _size - 1;
+    offset = (offset + delta) % _size;
+    if (offset == hash)
+    {
+        offset = (offset + 1) % _size;
+        if (delta == 1) delta = _size - 1;
+        else --delta;
+    }
+}
+
+void PtrMap::insert(ptrdiff_t p, uint offset)
+{
+    uint h = p % _size;
+    uint h1 = (p / _size) % _size;
+    uint o = h;
+    while (_table[o]._p)
+    {
+        if (_table[o]._p == p) return;
+        inc(o, h1, h);
+    }
+    _table[o]._p = p;
+    _table[o]._o = offset;
+}
+
+uint PtrMap::lookup(ptrdiff_t p)
+{
+    uint h = p % _size;
+    uint h1 = (p / _size) % _size;
+    uint o = h;
+    while (_table[o]._p)
+    {
+        if (_table[o]._p == p) return _table[o]._o;
+        inc(o, h1, h);
+    }
+    return 0;
+}
+
+SegCacheEntry::SegCacheEntry(Segment *seg, size_t start, size_t end)
+    : m_length(end - start), m_glyphLength(0), m_unicode(gralloc<unsigned int>(end - start)), m_glyph(NULL),
+    m_attr(NULL)
+{
+    for (unsigned int i = start, *p = m_unicode; i < end; ++i)
+        *p++ = seg->charinfo(i)->unicodeChar();
+}
+
+void SegCacheEntry::addSegment(Segment * seg, size_t charOffset)
+{
     size_t glyphCount = seg->slotCount();
     const Slot * slot = seg->first();
     m_glyph = new Slot[glyphCount];
@@ -52,31 +112,24 @@ SegCacheEntry::SegCacheEntry(const uint16* cmapGlyphs, size_t length, Segment * 
     m_glyphLength = glyphCount;
     Slot * slotCopy = m_glyph;
     m_glyph->prev(NULL);
-    struct Index2Slot {
-        Index2Slot(uint16 i, const Slot * s) : m_i(i), m_slot(s) {};
-        Index2Slot() : m_i(0), m_slot(NULL) {};
-        uint16 m_i;
-        const Slot * m_slot;
-    };
-    struct Index2Slot parentGlyphs[eMaxSpliceSize];
-    struct Index2Slot childGlyphs[eMaxSpliceSize];
-    uint16 numParents = 0;
-    uint16 numChildren = 0;
-    uint16 pos = 0;
+    m_glyph[glyphCount - 1].next(NULL);
+
+    PtrMap pmap = PtrMap(glyphCount);
+    for (int i = 0; slot; slot = slot->next())
+    { pmap.insert((ptrdiff_t)slot, ++i); }
+
+    slot = seg->first();
+    uint pos = 0;
     while (slot)
     {
         slotCopy->userAttrs(m_attr + pos * seg->numAttrs());
         slotCopy->set(*slot, -static_cast<int32>(charOffset), seg->numAttrs());
         if (slot->firstChild())
-        {
-            new(parentGlyphs + numParents) Index2Slot( pos, slot );
-            ++numParents;
-        }
+        { slotCopy->firstChild(m_glyph + pmap.lookup((ptrdiff_t)(slot->firstChild())) - 1); }
         if (slot->attachedTo())
-        {
-            new(childGlyphs + numChildren) Index2Slot( pos, slot );
-            ++numChildren;
-        }
+        { slotCopy->attachTo(m_glyph + pmap.lookup((ptrdiff_t)(slot->attachedTo())) - 1); }
+        if (slot->nextSibling())
+        { slotCopy->nextSibling(m_glyph + pmap.lookup((ptrdiff_t)(slot->nextSibling())) - 1); }
         slot = slot->next();
         ++slotCopy;
         ++pos;
@@ -86,53 +139,34 @@ SegCacheEntry::SegCacheEntry(const uint16* cmapGlyphs, size_t length, Segment * 
             (slotCopy-1)->next(slotCopy);
         }
     }
-    // loop over the attached children finding their siblings and parents
-    for (int16 i = 0; i < numChildren; i++)
-    {
-        if (childGlyphs[i].m_slot->nextSibling())
-        {
-            for (int16 j = i; j < numChildren; j++)
-            {
-                if (childGlyphs[i].m_slot->nextSibling() == childGlyphs[j].m_slot)
-                {
-                    m_glyph[childGlyphs[i].m_i].sibling(m_glyph + childGlyphs[j].m_i);
-                    break;
-                }
-            }
-            if (!m_glyph[childGlyphs[i].m_i].nextSibling())
-            {
-                // search backwards
-                for (int16 j = i-1; j >= 0; j--)
-                {
-                    if (childGlyphs[i].m_slot->nextSibling() == childGlyphs[j].m_slot)
-                    {
-                        m_glyph[childGlyphs[i].m_i].sibling(m_glyph + childGlyphs[j].m_i);
-                        break;
-                    }
-                }
-            }
-        }
-        // now find the parent glyph
-        for (int16 j = 0; j < numParents; j++)
-        {
-            if (childGlyphs[i].m_slot->attachedTo() == parentGlyphs[j].m_slot)
-            {
-                m_glyph[childGlyphs[i].m_i].attachTo(m_glyph + parentGlyphs[j].m_i);
-                if (parentGlyphs[j].m_slot->firstChild() == childGlyphs[i].m_slot)
-                {
-                    m_glyph[parentGlyphs[j].m_i].child(m_glyph + childGlyphs[i].m_i);
-                }
-            }
-        }
-    }
 }
 
+bool SegCacheEntry::cmp(SegCacheEntry *e)
+{
+    if (m_length != e->length()) return false;
+    for (const unsigned int *g = m_unicode, *end = m_unicode + m_length, *o = e->unicode(); g != end; ++g, ++o)
+    { if (*g != *o) return false; }
+    return true;
+}
+
+void SegCacheEntry::hash(uint16 *h, uint16 *h1, uint16 size)
+{
+    uint nh = 16777551;
+    uint nh1 = 2166136261;
+    for (unsigned int *g = m_unicode, *e = m_unicode + m_length; g != e; ++g)
+    {
+        nh = ((nh << 7) | (nh >> 31)) ^ *g;
+        nh1 = (nh1 * 16777619) ^ *g;
+    }
+    *h = nh % size;
+    *h1 = nh1 % size;
+}
 
 void SegCacheEntry::clear()
 {
     free(m_unicode);
     free(m_attr);
-    delete [] m_glyph;
+    if (m_glyph) delete [] m_glyph;
     m_unicode = NULL;
     m_glyph = NULL;
     m_glyphLength = 0;
@@ -140,4 +174,5 @@ void SegCacheEntry::clear()
 }
 
 #endif
+
 

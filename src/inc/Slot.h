@@ -100,8 +100,10 @@ public:
     Slot *attachedTo() const { return m_parent; }
     Position attachOffset() const { return m_attach - m_with; }
     Slot* firstChild() const { return m_child; }
+    void firstChild(Slot *s) { m_child = s; }
     bool child(Slot *ap);
     Slot* nextSibling() const { return m_sibling; }
+    void nextSibling(Slot *s) { m_sibling = s; }
     bool sibling(Slot *ap);
     uint32 clusterMetric(const Segment* seg, uint8 metric, uint8 attrLevel);
     void positionShift(Position a) { m_position += a; }

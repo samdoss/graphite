@@ -30,89 +30,94 @@ of the License or (at your option) any later version.
 
 #include "inc/Main.h"
 #include "inc/CmapCache.h"
-#include "inc/SegCache.h"
+
+#include "inc/HashTable.h"
+#include "inc/SegCacheEntry.h"
 
 namespace graphite2 {
 
-class SegCache;
 class Face;
+
+class SilfSegCacheEntry
+{
+public :
+    SilfSegCacheEntry(uint16 size, const Features &f) : m_hash(new HashTable<SegCacheEntry>(size)), m_feats(f) {};
+    ~SilfSegCacheEntry()
+    { delete m_hash; }
+
+    HashTable<SegCacheEntry> *hash() const { return m_hash; }
+    const Features & features() const { return m_feats; }
+
+    CLASS_NEW_DELETE
+private :
+    HashTable<SegCacheEntry> *m_hash;
+    Features m_feats;
+};
 
 class SilfSegCache
 {
-public:
-    SilfSegCache() : m_caches(NULL), m_cacheCount(0) {};
+public :
+    SilfSegCache();
     ~SilfSegCache()
     {
-        assert(m_caches == NULL);
-    }
-    void clear(SegCacheStore * cacheStore)
-    {
-        for (size_t i = 0; i < m_cacheCount; i++)
-        {
-            m_caches[i]->clear(cacheStore);
-            delete m_caches[i];
-        }
+        for (uint i = 0; i < m_cacheCount; ++i)
+        { delete m_caches[i]; }
         free(m_caches);
-        m_caches = NULL;
-        m_cacheCount = 0;
     }
-    SegCache * getOrCreate(SegCacheStore * cacheStore, const Features & features)
+    SilfSegCacheEntry * getOrCreate(uint16 size, const Features & features)
     {
         for (size_t i = 0; i < m_cacheCount; i++)
         {
-            if (m_caches[i]->features() == features)
+            if (&(m_caches[i]->features()) == &features)
                 return m_caches[i];
         }
-        SegCache ** newData = gralloc<SegCache*>(m_cacheCount+1);
+        SilfSegCacheEntry ** newData = gralloc<SilfSegCacheEntry *>(m_cacheCount+1);
         if (newData)
         {
             if (m_cacheCount > 0)
             {
-                memcpy(newData, m_caches, sizeof(SegCache*) * m_cacheCount);
+                memcpy(newData, m_caches, sizeof(SilfSegCacheEntry *) * m_cacheCount);
                 free(m_caches);
             }
             m_caches = newData;
-            m_caches[m_cacheCount] = new SegCache(cacheStore, features);
+            m_caches[m_cacheCount] = new SilfSegCacheEntry(size, features);
             m_cacheCount++;
             return m_caches[m_cacheCount - 1];
         }
         return NULL;
     }
+    int cutChar(uint32 chr) const throw();
+
     CLASS_NEW_DELETE
-private:
-    SegCache ** m_caches;
+private :
+    SilfSegCacheEntry **m_caches;
     size_t m_cacheCount;
+    uint8 **m_charCut;
+    bool m_isBmpOnly;
 };
 
 class SegCacheStore
 {
-public:
-    SegCacheStore(const Face *face, unsigned int numSilf, size_t maxSegments);
+public :
+    SegCacheStore(unsigned int numSilf, size_t maxSegments);
     ~SegCacheStore()
     {
-        for (size_t i = 0; i < m_numSilf; i++)
-        {
-            m_caches[i].clear(this);
-        }
-        delete [] m_caches;
+        for (int i = m_numSilf; i--; )
+        { m_caches[i].~SilfSegCache(); }
+        free(m_caches);
         m_caches = NULL;
     }
-    SegCache * getOrCreate(unsigned int i, const Features & features)
+    SilfSegCacheEntry * getOrCreate(unsigned int i, const Features & features)
     {
-        return m_caches[i].getOrCreate(this, features);
+        return m_caches[i].getOrCreate(m_maxSegments, features);
     }
-    bool isSpaceGlyph(uint16 gid) const { return (gid == m_spaceGid) || (gid == m_zwspGid); }
-    uint16 maxCmapGid() const { return m_maxCmapGid; }
-    uint32 maxSegmentCount() const { return m_maxSegments; };
+    int cutChar(uint32 chr, int silfIndex) { return m_caches[silfIndex].cutChar(chr); }
 
     CLASS_NEW_DELETE
-private:
+private :
     SilfSegCache * m_caches;
     uint8 m_numSilf;
     uint32 m_maxSegments;
-    uint16 m_maxCmapGid;
-    uint16 m_spaceGid;
-    uint16 m_zwspGid;
 };
 
 } // namespace graphite2

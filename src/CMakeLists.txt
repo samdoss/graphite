@@ -33,7 +33,7 @@ include(TestBigEndian)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SEGCACHE SegCache.cpp SegCacheEntry.cpp SegCacheStore.cpp)
+set(SEGCACHE SegCacheEntry.cpp SegCacheStore.cpp)
 if (GRAPHITE2_NSEGCACHE)
     add_definitions(-DGRAPHITE2_NSEGCACHE)
     set(SEGCACHE)

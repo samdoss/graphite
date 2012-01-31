@@ -15,8 +15,8 @@
 
     You should also have received a copy of the GNU Lesser General Public
     License along with this library in the file named "LICENSE".
-    If not, write to the Free Software Foundation, 51 Franklin Street,
-    Suite 500, Boston, MA 02110-1335, USA or visit their web page on the
+    If not, write to the Free Software Foundation, 51 Franklin Street, 
+    Suite 500, Boston, MA 02110-1335, USA or visit their web page on the 
     internet at http://www.fsf.org/licenses/lgpl.html.
 
 Alternatively, the contents of this file may be used under the terms of the
@@ -24,33 +24,28 @@ Mozilla Public License (http://mozilla.org/MPL) or the GNU General Public
 License, as published by the Free Software Foundation, either version 2
 of the License or (at your option) any later version.
 */
+#pragma once
 
-#ifndef GRAPHITE2_NSEGCACHE
+#include "Main.h"
+#Include "HashTable.h"
 
-#include "inc/SegCacheStore.h"
-#include "inc/Face.h"
+namespace graphite2 {
 
-#ifndef NDEBUG
-#include <stdio.h>
-#endif
-
-using namespace graphite2;
-
-SegCacheStore::SegCacheStore(unsigned int numSilf, size_t maxSegments)
- : m_numSilf(numSilf), m_maxSegments(maxSegments)
+HashTable::HashTable(uint16 size, Features features) : _level(0),
+    _newest = delindex, _oldest = delindex, _features = features
 {
-    m_caches = gralloc<SilfSegCache>(numSilf);
-    while (numSilf--)
-    {
-        ::new (m_caches + numSilf) SilfSegCache();
-    }
-    
+    _size = size;
+    if (_size > 0xFFFD) _size = 0xFFFD;
+    else if (!_size & 1) ++_size;
+    _full = _size * 100 / maxpercent;
+
+    _table = grzeroalloc<HashElement>(_size);
 }
 
-SilfSegCache::SilfSegCache()
- : m_caches(NULL), m_cacheCount(0)
+HashTable::~HashTable()
 {
+    free(_table);
 }
 
-#endif
+}
 

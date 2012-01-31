@@ -25,6 +25,7 @@ if  (${CMAKE_COMPILER_IS_GNUCXX})
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer")
 endif  (${CMAKE_COMPILER_IS_GNUCXX})
 
+
 if  (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     add_definitions(-D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS -DUNICODE)
     add_custom_target(${PROJECT_NAME}_copy_dll ALL

@@ -204,7 +204,6 @@ unsigned short gr_face_n_glyphs(const gr_face* pFace)
     return pFace->getGlyphFaceCache()->numGlyphs();
 }
 
-
 #ifndef GRAPHITE2_NFILEFACE
 gr_face* gr_make_file_face(const char *filename, unsigned int faceOptions)
 {

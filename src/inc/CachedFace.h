@@ -29,6 +29,7 @@ of the License or (at your option) any later version.
 #ifndef GRAPHITE2_NSEGCACHE
 
 #include "inc/Face.h"
+#include "inc/CharInfo.h"
 
 namespace graphite2 {
 
@@ -43,6 +44,7 @@ public:
     virtual bool runGraphite(Segment *seg, const Silf *silf) const;
     SegCacheStore * cacheStore() { return m_cacheStore; }
 private:
+    bool issplit(const CharInfo *c) const;
     SegCacheStore * m_cacheStore;
 };
 

@@ -28,44 +28,51 @@ of the License or (at your option) any later version.
 
 #include "inc/Main.h"
 
+#include <cassert>
+
 namespace graphite2 {
 
 class Face;
 
 class Cmap
 {
-public:
+public :
 	virtual ~Cmap() throw() {}
-
 	virtual uint16 operator [] (const uint32) const throw() { return 0; }
-
 	virtual operator bool () const throw() { return false; }
+    virtual bool nextEntry(uint32 * /*chr*/, uint16 * /*gid*/) const throw() { assert(false); return false; }
+    virtual bool isBmpOnly() const throw() { return false; }
 
 	CLASS_NEW_DELETE;
 };
 
 class DirectCmap : public Cmap
 {
-public:
+public :
 	DirectCmap(const void* cmap, size_t length);
 	virtual uint16 operator [] (const uint32 usv) const throw();
 	virtual operator bool () const throw();
+    virtual bool nextEntry(uint32 *chr, uint16 *gid) const throw();
+    virtual bool isBmpOnly() const throw();
 
     CLASS_NEW_DELETE;
-private:
+private :
     const void *_stable,
     		   *_ctable;
 };
 
 class CmapCache : public Cmap
 {
-public:
+public :
 	CmapCache(const void * cmapTable, size_t length);
 	virtual ~CmapCache() throw();
 	virtual uint16 operator [] (const uint32 usv) const throw();
 	virtual operator bool () const throw();
+    virtual bool nextEntry(uint32 *chr, uint16 *gid) const throw();
+    virtual bool isBmpOnly() const throw();
+
     CLASS_NEW_DELETE;
-private:
+private :
     bool m_isBmpOnly;
     uint16 ** m_blocks;
 };

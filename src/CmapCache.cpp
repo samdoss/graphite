@@ -46,9 +46,9 @@ CmapCache::CmapCache(const void* cmapTable, size_t length)
         m_blocks = grzeroalloc<uint16*>(0x1100);
         if (!m_blocks) return;
         codePoint =  TtfUtil::Cmap310NextCodepoint(table310, codePoint, &rangeKey);
-        while (codePoint != 0x10FFFF)
+        while (codePoint <= 0x10FFFF)
         {
-            unsigned int block = (codePoint & 0xFFFF00) >> 8;
+            unsigned int block = codePoint >> 8;
             if (!m_blocks[block])
             {
                 m_blocks[block] = grzeroalloc<uint16>(0x100);
@@ -73,9 +73,9 @@ CmapCache::CmapCache(const void* cmapTable, size_t length)
         codePoint = 0;
         rangeKey = 0;
         codePoint =  TtfUtil::Cmap31NextCodepoint(table31, codePoint, &rangeKey);
-        while (codePoint != 0xFFFF)
+        while (codePoint < 0xFFFF)
         {
-            unsigned int block = (codePoint & 0xFFFF00) >> 8;
+            unsigned int block = codePoint >> 8;
             if (!m_blocks[block])
             {
                 m_blocks[block] = grzeroalloc<uint16>(0x100);
@@ -104,7 +104,7 @@ uint16 CmapCache::operator [] (const uint32 usv) const throw()
 {
     if ((m_isBmpOnly && usv > 0xFFFF) || (usv > 0x10FFFF))
         return 0;
-    const uint32 block = 0xFFFF & (usv >> 8);
+    const uint32 block = usv >> 8;
     if (m_blocks[block])
         return m_blocks[block][usv & 0xFF];
     return 0;
@@ -113,6 +113,36 @@ uint16 CmapCache::operator [] (const uint32 usv) const throw()
 CmapCache::operator bool() const throw()
 {
 	return m_blocks;
+}
+
+bool CmapCache::nextEntry(uint32 *chr, uint16 *gid) const throw()
+{
+    ++*chr;
+    if ((m_isBmpOnly && *chr > 0xFFFF) || (*chr > 0x10FFFF))
+        return false;
+    uint32 block = *chr >> 8;
+    while ((!m_isBmpOnly && block <= 0x10FF) || block <= 0xFF)
+    {
+        if (!m_blocks[block])
+            *chr = (++block) << 8;
+        else
+        {
+            while ((*chr >> 8) == block)
+            {
+                *gid = m_blocks[block][*chr & 0xFF];
+                if (*gid)
+                    return true;
+                ++*chr;
+            }
+            ++block;
+        }
+    }
+    return false;
+}
+
+bool CmapCache::isBmpOnly() const throw()
+{
+    return m_isBmpOnly;
 }
 
 
@@ -139,3 +169,31 @@ DirectCmap::operator bool () const throw()
 	return _ctable;
 }
 
+bool DirectCmap::nextEntry(uint32 *chr, uint16 *gid) const throw()
+{
+    ++*chr;
+    if (*chr < 0xFFFF && _ctable)
+    {
+        *chr = TtfUtil::Cmap31NextCodepoint(_ctable, *chr, 0);
+        if (*chr < 0xFFFF)
+        {
+            *gid = TtfUtil::Cmap31Lookup(_ctable, *chr);
+            return true;
+        }
+    }
+    if (*chr < 0x10FFFF && _stable)
+    {
+        *chr = TtfUtil::Cmap310NextCodepoint(_stable, *chr, 0);
+        if (*chr < 0x10FFFF)
+        {
+            *gid = TtfUtil::Cmap310Lookup(_stable, *chr);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool DirectCmap::isBmpOnly() const throw()
+{
+    return _stable == 0;
+}
