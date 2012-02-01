@@ -56,7 +56,6 @@ $(_NS)_SOURCES = \
     $($(_NS)_BASE)/src/Font.cpp \
     $($(_NS)_BASE)/src/GlyphFace.cpp \
     $($(_NS)_BASE)/src/GlyphFaceCache.cpp \
-    $($(_NS)_BASE)/src/HashTable.cpp \
     $($(_NS)_BASE)/src/NameTable.cpp \
     $($(_NS)_BASE)/src/Pass.cpp \
     $($(_NS)_BASE)/src/SegCacheEntry.cpp \
