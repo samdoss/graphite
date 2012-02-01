@@ -44,9 +44,19 @@ public:
     virtual bool runGraphite(Segment *seg, const Silf *silf) const;
     SegCacheStore * cacheStore() { return m_cacheStore; }
 private:
-    bool issplit(const CharInfo *c) const;
+    inline bool issplit(const CharInfo *c) const;
     SegCacheStore * m_cacheStore;
 };
+
+inline bool CachedFace::issplit(const CharInfo *c) const
+{
+    uint8 f = c->flags();
+    uint  u = c->unicodeChar();
+    if (f == 2) return true;
+    if (f == 1) return false;
+    if (u == 0x0020 || u == 0x200B) return true;
+    return false;
+}
 
 } // namespace graphite2
 

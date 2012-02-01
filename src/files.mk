@@ -56,9 +56,9 @@ $(_NS)_SOURCES = \
     $($(_NS)_BASE)/src/Font.cpp \
     $($(_NS)_BASE)/src/GlyphFace.cpp \
     $($(_NS)_BASE)/src/GlyphFaceCache.cpp \
+    $($(_NS)_BASE)/src/HashTable.cpp \
     $($(_NS)_BASE)/src/NameTable.cpp \
     $($(_NS)_BASE)/src/Pass.cpp \
-    $($(_NS)_BASE)/src/SegCache.cpp \
     $($(_NS)_BASE)/src/SegCacheEntry.cpp \
     $($(_NS)_BASE)/src/SegCacheStore.cpp \
     $($(_NS)_BASE)/src/Segment.cpp \
@@ -82,6 +82,7 @@ $(_NS)_PRIVATE_HEADERS = \
     $($(_NS)_BASE)/src/inc/Font.h \
     $($(_NS)_BASE)/src/inc/GlyphFace.h \
     $($(_NS)_BASE)/src/inc/GlyphFaceCache.h \
+    $($(_NS)_BASE)/src/inc/HashTable.h \
     $($(_NS)_BASE)/src/inc/List.h \
     $($(_NS)_BASE)/src/inc/locale2lcid.h \
     $($(_NS)_BASE)/src/inc/Machine.h \
@@ -92,7 +93,6 @@ $(_NS)_PRIVATE_HEADERS = \
     $($(_NS)_BASE)/src/inc/Pass.h \
     $($(_NS)_BASE)/src/inc/Position.h \
     $($(_NS)_BASE)/src/inc/Rule.h \
-    $($(_NS)_BASE)/src/inc/SegCache.h \
     $($(_NS)_BASE)/src/inc/SegCacheEntry.h \
     $($(_NS)_BASE)/src/inc/SegCacheStore.h \
     $($(_NS)_BASE)/src/inc/Segment.h \
