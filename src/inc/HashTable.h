@@ -54,7 +54,7 @@ public:
     uint16 oldest() const { return _next_oldest; }
     T *data() const { return _data; }
 
-    void del() { _next_oldest = _next_newest = delindex; _data = NULL; }
+    void del() { _next_oldest = _next_newest = delindex; delete _data; _data = NULL; }
     bool isDel() const { return (_data == NULL && _next_oldest == delindex && _next_newest == delindex); }
     bool isEmpty() const { return (_data == NULL && !isDel()); }
     bool cmp(uint16 h, T *dat) const { return !isDel() && _h == h && _data->cmp(dat); }
@@ -99,8 +99,8 @@ public:
                 o = (o + h1) % _size;
                 if (o == h)
                 {
-                    o = (o + 1) % _size;
                     if (--h1 == 0) h1 = _size - 1;
+                    o = (o + h1) % _size;
                 }
             }
             else 
@@ -124,6 +124,7 @@ public:
             _table[_oldest].del();
             _oldest = next;
             _table[_oldest].oldest(delindex);
+            --_level;
         }
         return key;
     }

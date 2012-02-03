@@ -62,9 +62,8 @@ void PtrMap::inc(uint &offset, uint &delta, uint hash)
     offset = (offset + delta) % _size;
     if (offset == hash)
     {
-        offset = (offset + 1) % _size;
-        if (delta == 1) delta = _size - 1;
-        else --delta;
+        if (--delta == 0) delta = _size - 1;
+        offset = (offset + delta) % _size;
     }
 }
 
