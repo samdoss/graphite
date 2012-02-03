@@ -311,10 +311,13 @@ void Pass::runGraphite(Machine & m, FiniteStateMachine & fsm) const
     } while (s);
 }
 
-inline uint16 Pass::glyphToCol(const uint16 gid) const
+
+inline
+uint16 Pass::glyphToCol(const uint16 gid) const
 {
     return gid < m_numGlyphs ? m_cols[gid] : 0xffffU;
 }
+
 
 bool Pass::runFSM(FiniteStateMachine& fsm, Slot * slot) const
 {
