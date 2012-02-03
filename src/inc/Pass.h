@@ -93,9 +93,4 @@ private	:	//defensive
     Pass& operator=(const Pass&);
 };
 
-inline uint16 Pass::glyphToCol(const uint16 gid) const
-{
-    return gid < m_numGlyphs ? m_cols[gid] : 0xffffU;
-}
-
 } // namespace graphite2

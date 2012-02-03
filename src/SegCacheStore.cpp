@@ -30,10 +30,6 @@ of the License or (at your option) any later version.
 #include "inc/SegCacheStore.h"
 #include "inc/Face.h"
 
-#ifndef NDEBUG
-#include <stdio.h>
-#endif
-
 using namespace graphite2;
 
 SegCacheStore::SegCacheStore(unsigned int numSilf, size_t maxSegments)
@@ -47,9 +43,19 @@ SegCacheStore::SegCacheStore(unsigned int numSilf, size_t maxSegments)
     
 }
 
-SilfSegCache::SilfSegCache()
- : m_caches(NULL), m_cacheCount(0)
+SegCacheStore::~SegCacheStore()
 {
+    for (uint8 i = m_numSilf; i--; )
+    	m_caches[i].~SilfSegCache();
+    free(m_caches);
+}
+
+
+SilfSegCache::~SilfSegCache()
+{
+    for (size_t i = m_cacheCount; i--; )
+    	delete m_caches[i];
+    free(m_caches);
 }
 
 #endif

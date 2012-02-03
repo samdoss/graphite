@@ -29,11 +29,11 @@ of the License or (at your option) any later version.
 #ifndef GRAPHITE2_NSEGCACHE
 
 #include "inc/Face.h"
-#include "inc/CharInfo.h"
 
 namespace graphite2 {
 
 class SegCacheStore;
+class CharInfo;
 
 class CachedFace : public Face
 {
@@ -47,13 +47,6 @@ private:
     inline bool issplit(const CharInfo *c) const;
     SegCacheStore * m_cacheStore;
 };
-
-inline bool CachedFace::issplit(const CharInfo *c) const
-{
-    uint8 f = c->flags();
-    uint  u = c->unicodeChar();
-    return (f == 2) || ((f != 1) && (u == 0x0020 || u == 0x200B));
-}
 
 } // namespace graphite2
 

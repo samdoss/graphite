@@ -38,6 +38,7 @@ namespace graphite2 {
 typedef gr_attrCode attrCode;
 
 class Segment;
+class SegCacheEntry;
 
 class Slot
 {
@@ -100,10 +101,8 @@ public:
     Slot *attachedTo() const { return m_parent; }
     Position attachOffset() const { return m_attach - m_with; }
     Slot* firstChild() const { return m_child; }
-    void firstChild(Slot *s) { m_child = s; }
     bool child(Slot *ap);
     Slot* nextSibling() const { return m_sibling; }
-    void nextSibling(Slot *s) { m_sibling = s; }
     bool sibling(Slot *ap);
     uint32 clusterMetric(const Segment* seg, uint8 metric, uint8 attrLevel);
     void positionShift(Position a) { m_position += a; }
@@ -136,6 +135,8 @@ private:
     byte     m_bidiCls;     // bidirectional class
     byte     m_bidiLevel;   // bidirectional level
     int16   *m_userAttr;     // pointer to user attributes
+
+    friend class SegCacheEntry;
 };
 
 } // namespace graphite2

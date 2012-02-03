@@ -34,13 +34,6 @@ namespace graphite2 {
 #define delindex 0xFFFF
 #define maxpercent 80
 
-class HashElement
-{
-public:
-    virtual bool cmp(HashElement *other) const = 0;
-    virtual void hash(uint16 *h, uint16 *h1, uint16 size) const = 0;
-};
-
 template <class T> class HashEntry
 {
 public:

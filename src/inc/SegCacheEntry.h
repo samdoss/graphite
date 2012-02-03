@@ -66,19 +66,18 @@ class SegCacheEntry
 {
 public :
     SegCacheEntry() :
-        m_glyphLength(0), m_unicode(NULL), m_glyph(NULL), m_attr(NULL)
+        m_glyph(NULL), m_glyph_end(0), m_attr(NULL), m_unicode(NULL), m_length(0)
     {}
     SegCacheEntry(Segment *seg, size_t start, size_t end);
-    ~SegCacheEntry() { clear(); };
+    ~SegCacheEntry();
 
     bool cmp(SegCacheEntry *e);
     void hash(uint16 *h, uint16 *h1, uint16 size);
 
     void addSegment(Segment * seg, size_t charOffset);
-    void clear();
-    size_t glyphLength() const { return m_glyphLength; }
+    size_t glyphLength() const { return m_glyph_end - m_glyph; }
     const Slot * first() const { return m_glyph; }
-    const Slot * last() const { return m_glyph + (m_glyphLength - 1); }
+    const Slot * last() const { return m_glyph_end-1; }
     size_t length() const { return m_length; }
     const unsigned int *unicode() const { return m_unicode; }
 
@@ -87,14 +86,14 @@ public :
     CLASS_NEW_DELETE;
 private:
 
-    size_t m_length;
-    size_t m_glyphLength;
+    Slot 		  * m_glyph,
+    			  * m_glyph_end;
+    int16 		  * m_attr;
+    unsigned int  * m_unicode;
+    size_t			m_length;
     /** glyph ids resulting from cmap mapping from unicode to glyph before substitution
      * the length of this array is determined by the position in the SegCachePrefixEntry */
-    unsigned int * m_unicode;
     /** slots after shapping and positioning */
-    Slot * m_glyph;
-    int16 * m_attr;
 };
 
 } // namespace graphite2

@@ -30,7 +30,6 @@ of the License or (at your option) any later version.
 
 #include "inc/Main.h"
 #include "inc/CmapCache.h"
-
 #include "inc/HashTable.h"
 #include "inc/SegCacheEntry.h"
 
@@ -41,14 +40,14 @@ class Face;
 class SilfSegCacheEntry
 {
 public :
-    SilfSegCacheEntry(uint16 size, const Features &f) : m_hash(new HashTable<SegCacheEntry>(size)), m_feats(f) {};
-    ~SilfSegCacheEntry()
-    { delete m_hash; }
+    SilfSegCacheEntry(uint16 size, const Features &f)
+    : m_hash(new HashTable<SegCacheEntry>(size)), m_feats(f) {}
+    ~SilfSegCacheEntry()					{ delete m_hash; }
 
-    HashTable<SegCacheEntry> *hash() const { return m_hash; }
-    const Features & features() const { return m_feats; }
+    HashTable<SegCacheEntry> *hash() const 	{ return m_hash; }
+    const Features & features() const 		{ return m_feats; }
 
-    CLASS_NEW_DELETE
+    CLASS_NEW_DELETE;
 private :
     HashTable<SegCacheEntry> *m_hash;
     Features m_feats;
@@ -57,63 +56,58 @@ private :
 class SilfSegCache
 {
 public :
-    SilfSegCache();
-    ~SilfSegCache()
-    {
-        for (uint i = 0; i < m_cacheCount; ++i)
-        { delete m_caches[i]; }
-        free(m_caches);
-    }
-    SilfSegCacheEntry * getOrCreate(uint16 size, const Features & features)
-    {
-        for (size_t i = 0; i < m_cacheCount; i++)
-        {
-            if (&(m_caches[i]->features()) == &features)
-                return m_caches[i];
-        }
-        SilfSegCacheEntry ** newData = gralloc<SilfSegCacheEntry *>(m_cacheCount+1);
-        if (newData)
-        {
-            if (m_cacheCount > 0)
-            {
-                memcpy(newData, m_caches, sizeof(SilfSegCacheEntry *) * m_cacheCount);
-                free(m_caches);
-            }
-            m_caches = newData;
-            m_caches[m_cacheCount] = new SilfSegCacheEntry(size, features);
-            m_cacheCount++;
-            return m_caches[m_cacheCount - 1];
-        }
-        return NULL;
-    }
+	SilfSegCache() : m_caches(NULL), m_cacheCount(0) {}
+    ~SilfSegCache();
+    SilfSegCacheEntry * getOrCreate(uint16 size, const Features & features);
     int cutChar(uint32 chr) const throw();
 
-    CLASS_NEW_DELETE
+    CLASS_NEW_DELETE;
 private :
     SilfSegCacheEntry **m_caches;
-    size_t m_cacheCount;
     uint8 **m_charCut;
-    bool m_isBmpOnly;
+    size_t m_cacheCount;
+//    bool m_isBmpOnly;
 };
+
+
+inline
+SilfSegCacheEntry * SilfSegCache::getOrCreate(uint16 size, const Features & features)
+{
+    for (size_t i = 0; i < m_cacheCount; i++)
+    {
+        if (m_caches[i]->features() == features)
+            return m_caches[i];
+    }
+    SilfSegCacheEntry ** newData = gralloc<SilfSegCacheEntry *>(m_cacheCount+1);
+    if (newData)
+    {
+        if (m_cacheCount > 0)
+        {
+            memcpy(newData, m_caches, sizeof(SilfSegCacheEntry *) * m_cacheCount);
+            free(m_caches);
+        }
+        m_caches = newData;
+        m_caches[m_cacheCount] = new SilfSegCacheEntry(size, features);
+        m_cacheCount++;
+        return m_caches[m_cacheCount - 1];
+    }
+    return NULL;
+}
+
+
 
 class SegCacheStore
 {
 public :
     SegCacheStore(unsigned int numSilf, size_t maxSegments);
-    ~SegCacheStore()
-    {
-        for (int i = m_numSilf; i--; )
-        { m_caches[i].~SilfSegCache(); }
-        free(m_caches);
-        m_caches = NULL;
-    }
+    ~SegCacheStore();
     SilfSegCacheEntry * getOrCreate(unsigned int i, const Features & features)
     {
         return m_caches[i].getOrCreate(m_maxSegments, features);
     }
     int cutChar(uint32 chr, int silfIndex) { return m_caches[silfIndex].cutChar(chr); }
 
-    CLASS_NEW_DELETE
+    CLASS_NEW_DELETE;
 private :
     SilfSegCache * m_caches;
     uint8 m_numSilf;

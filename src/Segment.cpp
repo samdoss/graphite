@@ -247,7 +247,7 @@ void Segment::splice(size_t offset, size_t length, Slot * startSlot,
     { *s = slot; }
 
     slot = startSlot;
-    for (uint i = 0; i < numGlyphs; ++i)
+    for (unsigned int i = 0; i < numGlyphs; ++i)
     {
         slot->set(*replacement, offset, m_silf->numUser());
         if (replacement->attachedTo())
@@ -329,6 +329,22 @@ Position Segment::positionSlots(const Font *font, Slot * iStart, Slot * iEnd)
     return currpos;
 }
 
+void Segment::associateChars()
+{
+    int i = 0;
+    for (Slot * s = m_first; s; s->index(i++), s = s->next())
+    {
+        int j = s->before();
+        if (j < 0)	continue;
+
+        for (const int after = s->after(); j <= after; ++j)
+		{
+			CharInfo & c = *charinfo(j);
+			if (c.before() == -1 || i < c.before()) 	c.before(i);
+			if (c.after() < i) 							c.after(i);
+		}
+    }
+}
 
 template <typename utf_iter>
 inline void process_utf_data(Segment & seg, const Face & face, const int fid, utf_iter c, size_t n_chars)
@@ -363,27 +379,6 @@ void Segment::read_text(const Face *face, const Features* pFeats/*must not be NU
 void Segment::prepare_pos(const Font * /*font*/)
 {
     // copy key changeable metrics into slot (if any);
-}
-
-void Segment::finalise(const Font *font)
-{
-	if (!m_first) return;
-
-    m_advance = positionSlots(font);
-    int i = 0;
-    for (Slot * s = m_first; s; s->index(i++), s = s->next())
-    {
-        int j = s->before();
-        if (j < 0)	continue;
-
-        for (const int after = s->after(); j <= after; ++j)
-		{
-			CharInfo & c = *charinfo(j);
-			if (c.before() == -1 || i < c.before()) 	c.before(i);
-			if (c.after() < i) 							c.after(i);
-		}
-    }
-    linkClusters(m_first, m_last);
 }
 
 void Segment::justify(Slot *pSlot, const Font *font, float width, GR_MAYBE_UNUSED justFlags flags, Slot *pFirst, Slot *pLast)

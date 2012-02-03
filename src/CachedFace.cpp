@@ -50,7 +50,7 @@ CachedFace::~CachedFace()
 bool CachedFace::setupCache(unsigned int cacheSize)
 {
     m_cacheStore = new SegCacheStore(m_numSilf, cacheSize);
-    return (m_cacheStore != NULL);
+    return m_cacheStore != 0;
 }
 
 
@@ -102,6 +102,16 @@ bool CachedFace::runGraphite(Segment *seg, const Silf *pSilf) const
         if (subSegEndSlot) subSegEndSlot = subSegEndSlot->next();
     }
     return true;
+}
+
+bool CachedFace::issplit(const CharInfo *c) const
+{
+    uint8 f = c->flags();
+    uint  u = c->unicodeChar();
+    if (f == 2) return true;
+    if (f == 1) return false;
+    if (u == 0x0020 || u == 0x200B) return true;
+    return false;
 }
 
 #endif

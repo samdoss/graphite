@@ -35,100 +35,48 @@ of the License or (at your option) any later version.
 
 using namespace graphite2;
 
-struct Ptr {
-    ptrdiff_t _p;
-    uint _o;
-};
-
-class PtrMap {
-public :
-    PtrMap(size_t length) {
-        _size = length * 1.75;
-        if (!(_size & 1)) ++_size;
-        _table = grzeroalloc<Ptr>((size_t)_size);
-    }
-    ~PtrMap() { free(_table); }
-    void inc(uint &offset, uint &delta, uint hash);
-    void insert(ptrdiff_t p, uint offset);
-    uint lookup(ptrdiff_t p);
-private :
-    Ptr *_table;
-    uint _size;
-};
-
-void PtrMap::inc(uint &offset, uint &delta, uint hash)
-{
-    if (delta == 0) delta = _size - 1;
-    offset = (offset + delta) % _size;
-    if (offset == hash)
-    {
-        if (--delta == 0) delta = _size - 1;
-        offset = (offset + delta) % _size;
-    }
-}
-
-void PtrMap::insert(ptrdiff_t p, uint offset)
-{
-    uint h = p % _size;
-    uint h1 = (p / _size) % _size;
-    uint o = h;
-    while (_table[o]._p)
-    {
-        if (_table[o]._p == p) return;
-        inc(o, h1, h);
-    }
-    _table[o]._p = p;
-    _table[o]._o = offset;
-}
-
-uint PtrMap::lookup(ptrdiff_t p)
-{
-    uint h = p % _size;
-    uint h1 = (p / _size) % _size;
-    uint o = h;
-    while (_table[o]._p)
-    {
-        if (_table[o]._p == p) return _table[o]._o;
-        inc(o, h1, h);
-    }
-    return 0;
-}
-
 SegCacheEntry::SegCacheEntry(Segment *seg, size_t start, size_t end)
-    : m_length(end - start), m_glyphLength(0), m_unicode(gralloc<unsigned int>(end - start)), m_glyph(NULL),
-    m_attr(NULL)
+: m_glyph(NULL), m_glyph_end(NULL),
+  m_attr(NULL), m_unicode(gralloc<unsigned int>(end - start)),
+  m_length(end - start)
 {
-    for (unsigned int i = start, *p = m_unicode; i < end; ++i)
-        *p++ = seg->charinfo(i)->unicodeChar();
+    for (unsigned int i = start, *p = m_unicode; i != end; ++i, ++p)
+        *p = seg->charinfo(i)->unicodeChar();
 }
+
+SegCacheEntry::~SegCacheEntry()
+{
+    free(m_unicode);
+    free(m_attr);
+    delete [] m_glyph;
+}
+
 
 void SegCacheEntry::addSegment(Segment * seg, size_t charOffset)
 {
-    size_t glyphCount = seg->slotCount();
+    const size_t glyphCount = seg->slotCount();
     const Slot * slot = seg->first();
     m_glyph = new Slot[glyphCount];
+    m_glyph_end = m_glyph + glyphCount;
     m_attr = gralloc<int16>(glyphCount * seg->numAttrs());
-    m_glyphLength = glyphCount;
     Slot * slotCopy = m_glyph;
     m_glyph->prev(NULL);
-    m_glyph[glyphCount - 1].next(NULL);
+    m_glyph_end[-1].next(NULL);
 
-    PtrMap pmap = PtrMap(glyphCount);
-    for (int i = 0; slot; slot = slot->next())
-    { pmap.insert((ptrdiff_t)slot, ++i); }
+    seg->associateChars();
 
     slot = seg->first();
-    uint pos = 0;
+    unsigned int pos = 0;
     while (slot)
     {
         slotCopy->userAttrs(m_attr + pos * seg->numAttrs());
         slotCopy->set(*slot, -static_cast<int32>(charOffset), seg->numAttrs());
         if (slot->firstChild())
-        { slotCopy->firstChild(m_glyph + pmap.lookup((ptrdiff_t)(slot->firstChild())) - 1); }
+        { slotCopy->m_child = m_glyph + slot->firstChild()->index(); }
         if (slot->attachedTo())
-        { slotCopy->attachTo(m_glyph + pmap.lookup((ptrdiff_t)(slot->attachedTo())) - 1); }
+        { slotCopy->attachTo(m_glyph + slot->attachedTo()->index()); }
         if (slot->nextSibling())
-        { slotCopy->nextSibling(m_glyph + pmap.lookup((ptrdiff_t)(slot->nextSibling())) - 1); }
+        { slotCopy->m_sibling = m_glyph + slot->nextSibling()->index(); }
         slot = slot->next();
         ++slotCopy;
         ++pos;
@@ -150,8 +98,8 @@ bool SegCacheEntry::cmp(SegCacheEntry *e)
 
 void SegCacheEntry::hash(uint16 *h, uint16 *h1, uint16 size)
 {
-    uint nh = 16777551;
-    uint nh1 = 2166136261;
+    uint32 nh  = 16777551,
+    	   nh1 = 2166136261;
     for (unsigned int *g = m_unicode, *e = m_unicode + m_length; g != e; ++g)
     {
         nh = ((nh << 7) | (nh >> 31)) ^ *g;
@@ -159,17 +107,6 @@ void SegCacheEntry::hash(uint16 *h, uint16 *h1, uint16 size)
     }
     *h = nh % size;
     *h1 = nh1 % size;
-}
-
-void SegCacheEntry::clear()
-{
-    free(m_unicode);
-    free(m_attr);
-    if (m_glyph) delete [] m_glyph;
-    m_unicode = NULL;
-    m_glyph = NULL;
-    m_glyphLength = 0;
-    m_attr = NULL;
 }
 
 #endif
