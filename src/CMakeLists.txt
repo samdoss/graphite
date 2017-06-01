@@ -66,7 +66,7 @@ set(GRAPHITE_HEADERS
 file(GLOB PRIVATE_HEADERS inc/*.h) 
 
 add_library(graphite2 SHARED
-    ${GRAPHITE2_VM_TYPE}_machine.cpp
+    ${GRAPHITE2_VM_TYPE}call_machine.cpp
     gr_char_info.cpp
     gr_features.cpp
     gr_face.cpp
